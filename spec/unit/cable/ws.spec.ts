@@ -1,4 +1,3 @@
-import { describe as context } from '@jest/globals'
 import { DateTime } from 'luxon'
 import redisWsKey, * as RedisWsKeyModule from '../../../src/cable/redisWsKey'
 import Ws, { InvalidWsPathError } from '../../../src/cable/ws'
