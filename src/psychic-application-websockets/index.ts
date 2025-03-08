@@ -1,8 +1,8 @@
 import { PsychicApplication } from '@rvohealth/psychic'
 import { Cluster, Redis } from 'ioredis'
 import { Socket, Server as SocketServer } from 'socket.io'
-import Cable from '../cable'
-import { cachePsychicApplicationWebsockets, getCachedPsychicApplicationWebsocketsOrFail } from './cache'
+import Cable from '../cable/index.js'
+import { cachePsychicApplicationWebsockets, getCachedPsychicApplicationWebsocketsOrFail } from './cache.js'
 
 export default class PsychicApplicationWebsockets {
   public static async init(

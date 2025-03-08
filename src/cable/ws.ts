@@ -3,9 +3,9 @@ import { Emitter } from '@socket.io/redis-emitter'
 import Redis from 'ioredis'
 import { DateTime } from 'luxon'
 import { Socket } from 'socket.io'
-import EnvInternal from '../helpers/EnvInternal'
-import redisWsKey from './redisWsKey'
-import PsychicApplicationWebsockets from '../psychic-application-websockets'
+import EnvInternal from '../helpers/EnvInternal.js'
+import redisWsKey from './redisWsKey.js'
+import PsychicApplicationWebsockets from '../psychic-application-websockets/index.js'
 
 export default class Ws<AllowedPaths extends readonly string[]> {
   public io: Emitter

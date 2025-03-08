@@ -4,11 +4,11 @@ import * as colors from 'colorette'
 import { Application } from 'express'
 import http from 'http'
 import socketio from 'socket.io'
-import MissingWsRedisConnection from '../error/ws/MissingWsRedisConnection'
-import EnvInternal from '../helpers/EnvInternal'
+import MissingWsRedisConnection from '../error/ws/MissingWsRedisConnection.js'
+import EnvInternal from '../helpers/EnvInternal.js'
 import PsychicApplicationWebsockets, {
   RedisOrRedisClusterConnection,
-} from '../psychic-application-websockets'
+} from '../psychic-application-websockets/index.js'
 
 export default class Cable {
   public app: Application
