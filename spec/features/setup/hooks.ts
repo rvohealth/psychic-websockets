@@ -1,7 +1,11 @@
 import { DreamApplication } from '@rvohealth/dream'
-import { truncate } from '@rvohealth/dream-spec-helpers'
-import initializePsychicApplication from '../../../test-app/src/cli/helpers/initializePsychicApplication'
+import { provideDreamViteMatchers, truncate } from '@rvohealth/dream-spec-helpers'
 import { PsychicServer } from '@rvohealth/psychic'
+import { providePuppeteerViteMatchers } from '@rvohealth/psychic-spec-helpers'
+import initializePsychicApplication from '../../../test-app/src/cli/helpers/initializePsychicApplication'
+
+provideDreamViteMatchers()
+providePuppeteerViteMatchers()
 
 // jest.setTimeout(
 //   (process.env.JEST_FEATURE_TIMEOUT_SECONDS && parseInt(process.env.JEST_FEATURE_TIMEOUT_SECONDS) * 1000) ||

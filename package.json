@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@rvohealth/psychic-websockets",
   "description": "Websocket system for Psychic applications",
-  "version": "0.2.0-fgbeta-1",
+  "version": "0.2.0-fgbeta-2",
   "author": "RVOHealth",
   "repository": "https://github.com/rvohealth/psychic-websockets.git",
   "license": "MIT",
@@ -20,10 +20,11 @@
     "dist/**/*"
   ],
   "scripts": {
+    "client": "yarn --cwd=./client start",
     "publish": "yarn npm publish",
     "psy": "yarn psyts",
     "psyjs": "node ./dist/test-app/src/cli/index.js",
-    "psyts": "npx ts-node --transpile-only -r ./test-app/src/conf/loadEnv.ts test-app/src/cli/index.ts",
+    "psyts": "node --experimental-specifier-resolution=node --loader ts-node/esm ./test-app/src/cli/index.ts",
     "build": "echo \"building cjs...\" && rm -rf dist && npx tsc -p ./tsconfig.cjs.build.json && echo \"building esm...\" && npx tsc -p ./tsconfig.esm.build.json",
     "uspec": "vitest --config ./spec/unit/vite.config.ts",
     "fspec": "vitest run --config=./spec/features/vite.config.ts",
@@ -45,9 +46,9 @@
   "devDependencies": {
     "@eslint/js": "=9.0.0",
     "@rvohealth/dream": "=0.29.0-fgbeta-21",
-    "@rvohealth/dream-spec-helpers": "=0.1.0-fgbeta-15",
+    "@rvohealth/dream-spec-helpers": "=0.1.0-fgbeta-17",
     "@rvohealth/psychic": "=0.24.0-fgbeta-5",
-    "@rvohealth/psychic-spec-helpers": "=0.2.0-fgbeta-1",
+    "@rvohealth/psychic-spec-helpers": "=0.2.0-fgbeta-13",
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
     "@types/express": "^4",
