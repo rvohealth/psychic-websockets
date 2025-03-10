@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@eslint/js": "=9.0.0",
-    "@rvohealth/dream": "=0.29.0-fgnewbeta-2",
+    "@rvohealth/dream": "=0.29.0",
     "@rvohealth/dream-spec-helpers": "=0.1.0",
     "@rvohealth/psychic": "=0.24.0",
     "@rvohealth/psychic-spec-helpers": "=0.2.0",
