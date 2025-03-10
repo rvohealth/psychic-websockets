@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@rvohealth/psychic-websockets",
   "description": "Websocket system for Psychic applications",
-  "version": "0.2.0-fgbeta-3",
+  "version": "0.2.0",
   "author": "RVOHealth",
   "repository": "https://github.com/rvohealth/psychic-websockets.git",
   "license": "MIT",
