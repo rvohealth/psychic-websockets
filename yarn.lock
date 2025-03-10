@@ -711,7 +711,7 @@ __metadata:
     "@eslint/js": "npm:=9.0.0"
     "@rvohealth/dream": "npm:=0.29.0-fgnewbeta-2"
     "@rvohealth/dream-spec-helpers": "npm:=0.1.0"
-    "@rvohealth/psychic": "npm:=0.24.0-fgbeta-10"
+    "@rvohealth/psychic": "npm:=0.24.0"
     "@rvohealth/psychic-spec-helpers": "npm:=0.2.0"
     "@socket.io/redis-adapter": "npm:^8.3.0"
     "@socket.io/redis-emitter": "npm:^5.1.0"
@@ -750,9 +750,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rvohealth/psychic@npm:=0.24.0-fgbeta-10":
-  version: 0.24.0-fgbeta-10
-  resolution: "@rvohealth/psychic@npm:0.24.0-fgbeta-10::__archiveUrl=https%3A%2F%2Fnpm.pkg.github.com%2Fdownload%2F%40rvohealth%2Fpsychic%2F0.24.0-fgbeta-10%2Ffd79dc341ad92fd2161e44b4e9f5a56fa981381f"
+"@rvohealth/psychic@npm:=0.24.0":
+  version: 0.24.0
+  resolution: "@rvohealth/psychic@npm:0.24.0::__archiveUrl=https%3A%2F%2Fnpm.pkg.github.com%2Fdownload%2F%40rvohealth%2Fpsychic%2F0.24.0%2F90364bf0b451e912d77a3189208cd88c437b87ba"
   dependencies:
     "@types/cookie-parser": "npm:^1.4.7"
     "@types/cors": "npm:^2.8.17"
@@ -773,7 +773,7 @@ __metadata:
     "@types/express": "*"
     commander: "*"
     express: "*"
-  checksum: 10c0/76a1e0904092055bdc3222b4e3384aac3362f8ba657b3eb431a875a6d10b9974fa813f6bfc25af8f0eec78b799d309e2ccb1b2cfdf7e06de5d3a1d74464af223
+  checksum: 10c0/764cf4d87351c5219550949bf69add0130d23f35f11346310ae29b30f085c6259216c7b4aa32b826f2ea74936ac2da2c07dc12310d0427bae7afb3e9d516d158
   languageName: node
   linkType: hard
 
