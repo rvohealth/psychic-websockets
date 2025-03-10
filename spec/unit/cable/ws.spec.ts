@@ -3,6 +3,7 @@ import redisWsKey, * as RedisWsKeyModule from '../../../src/cable/redisWsKey'
 import Ws, { InvalidWsPathError } from '../../../src/cable/ws'
 import PsychicApplicationWebsockets from '../../../src/psychic-application-websockets'
 import createUser from '../../../test-app/spec/factories/UserFactory'
+import { MockInstance } from 'vitest'
 
 describe('Ws', () => {
   describe('.register', () => {
@@ -15,13 +16,13 @@ describe('Ws', () => {
 
     it('puts socket id in redis', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      await Ws.register({ id: '456', on: jest.fn() } as any, '123')
+      await Ws.register({ id: '456', on: vi.fn() } as any, '123')
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      await Ws.register({ id: '789', on: jest.fn() } as any, '123')
+      await Ws.register({ id: '789', on: vi.fn() } as any, '123')
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      await Ws.register({ id: '101', on: jest.fn() } as any, 'otheruserid')
+      await Ws.register({ id: '101', on: vi.fn() } as any, 'otheruserid')
 
       const socketIds = await new Ws([]).findSocketIds('123')
       expect(socketIds).toEqual(['456', '789'])
@@ -30,16 +31,16 @@ describe('Ws', () => {
     context('with more than 3 register calls for the same user', () => {
       it('restricts to 3 per unique id', async () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        await Ws.register({ id: '456', on: jest.fn() } as any, '123')
+        await Ws.register({ id: '456', on: vi.fn() } as any, '123')
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        await Ws.register({ id: '789', on: jest.fn() } as any, '123')
+        await Ws.register({ id: '789', on: vi.fn() } as any, '123')
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        await Ws.register({ id: '345', on: jest.fn() } as any, '123')
+        await Ws.register({ id: '345', on: vi.fn() } as any, '123')
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        await Ws.register({ id: '234', on: jest.fn() } as any, '123')
+        await Ws.register({ id: '234', on: vi.fn() } as any, '123')
 
         const socketIds = await new Ws([]).findSocketIds('123')
         expect(socketIds).toEqual(['789', '345', '234'])
@@ -47,7 +48,7 @@ describe('Ws', () => {
     })
 
     it('binds disconnect logic to socket', async () => {
-      const onSpy = jest.fn()
+      const onSpy = vi.fn()
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
       await Ws.register({ id: '456', on: onSpy } as any, '123')
@@ -58,9 +59,9 @@ describe('Ws', () => {
     })
 
     it('calls emit to the passed id', async () => {
-      const emitSpy = jest.spyOn(Ws.prototype, 'emit').mockImplementation(async () => {})
+      const emitSpy = vi.spyOn(Ws.prototype, 'emit').mockImplementation(async () => {})
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      await Ws.register({ id: '986', on: jest.fn() } as any, '987')
+      await Ws.register({ id: '986', on: vi.fn() } as any, '987')
 
       expect(emitSpy).toHaveBeenCalledWith('987', '/ops/connection-success', {
         message: 'Successfully connected to psychic websockets',
@@ -70,9 +71,9 @@ describe('Ws', () => {
     context('when passed a dream', () => {
       it('calls the primaryKeyValue of that dream instance', async () => {
         const user = await createUser()
-        const emitSpy = jest.spyOn(Ws.prototype, 'emit').mockImplementation(async () => {})
+        const emitSpy = vi.spyOn(Ws.prototype, 'emit').mockImplementation(async () => {})
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        await Ws.register({ id: '986', on: jest.fn() } as any, user)
+        await Ws.register({ id: '986', on: vi.fn() } as any, user)
 
         expect(emitSpy).toHaveBeenCalledWith(user.id, '/ops/connection-success', {
           message: 'Successfully connected to psychic websockets',
@@ -83,18 +84,18 @@ describe('Ws', () => {
 
   describe('#emit', () => {
     let ws: Ws<readonly string[]>
-    let findSocketIdsSpy: jest.SpyInstance
-    let toSpy: jest.SpyInstance
-    let emitSpy: jest.SpyInstance
+    let findSocketIdsSpy: MockInstance
+    let toSpy: MockInstance
+    let emitSpy: MockInstance
 
     function buildWsInstanceForEmitTests(findSocketIdsValue: string[]) {
       ws = new Ws(['/ops/howyadoin'] as const)
       ws.boot()
 
-      findSocketIdsSpy = jest.spyOn(ws, 'findSocketIds').mockResolvedValue(findSocketIdsValue)
-      emitSpy = jest.fn()
+      findSocketIdsSpy = vi.spyOn(ws, 'findSocketIds').mockResolvedValue(findSocketIdsValue)
+      emitSpy = vi.fn()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      toSpy = jest.spyOn(ws.io, 'to').mockReturnValue({ emit: emitSpy } as any)
+      toSpy = vi.spyOn(ws.io, 'to').mockReturnValue({ emit: emitSpy } as any)
     }
 
     it('emits to the passed id to the default socket.io namespace, using "user" (by default) as the redis key prefix', async () => {
@@ -164,7 +165,7 @@ describe('Ws', () => {
     })
 
     it('calls to redis to find socket ids', async () => {
-      const redisWsKeySpy = jest.spyOn(RedisWsKeyModule, 'default')
+      const redisWsKeySpy = vi.spyOn(RedisWsKeyModule, 'default')
       const socketIds = await ws.findSocketIds('150')
       expect(socketIds).toEqual(['151'])
       expect(redisWsKeySpy).toHaveBeenCalledWith('150', 'user')
@@ -172,7 +173,7 @@ describe('Ws', () => {
 
     context('with a custom redisKeyPrefix', () => {
       it('uses the custom prefix to generate the redis key', async () => {
-        const redisWsKeySpy = jest.spyOn(RedisWsKeyModule, 'default')
+        const redisWsKeySpy = vi.spyOn(RedisWsKeyModule, 'default')
         ws = new Ws([] as const, { redisKeyPrefix: 'howyadoin' })
         const socketIds = await ws.findSocketIds('160')
         expect(socketIds).toEqual(['161'])
