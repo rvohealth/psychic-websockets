@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "name": "@rvohealth/psychic-websockets",
+  "name": "@rvoh/psychic-websockets",
   "description": "Websocket system for Psychic applications",
   "version": "0.2.0",
   "author": "RVOHealth",
@@ -21,7 +21,6 @@
   ],
   "scripts": {
     "client": "yarn --cwd=./client start",
-    "publish": "yarn npm publish",
     "psy": "yarn psyts",
     "psyjs": "node ./dist/test-app/src/cli/index.js",
     "psyts": "node --experimental-specifier-resolution=node --import ./bin/esm.js ./test-app/src/cli/index.ts",
@@ -33,10 +32,9 @@
     "dev": "NODE_ENV=development WORKER_COUNT=0 ts-node --transpile-only ./test-app/main.ts",
     "prepack": "yarn build"
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
   "peerDependencies": {
+    "@rvoh/dream": "*",
+    "@rvoh/psychic": "*",
     "@socket.io/redis-adapter": "*",
     "@socket.io/redis-emitter": "*",
     "ioredis": "*",
@@ -45,10 +43,10 @@
   },
   "devDependencies": {
     "@eslint/js": "=9.0.0",
-    "@rvohealth/dream": "=0.29.0",
-    "@rvohealth/dream-spec-helpers": "=0.1.0",
-    "@rvohealth/psychic": "=0.24.0",
-    "@rvohealth/psychic-spec-helpers": "=0.2.0",
+    "@rvoh/dream": "^0.29.1",
+    "@rvoh/dream-spec-helpers": "^0.1.0",
+    "@rvoh/psychic": "^0.24.0",
+    "@rvoh/psychic-spec-helpers": "^0.2.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
     "@types/express": "^4",

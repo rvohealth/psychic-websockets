@@ -1,5 +1,5 @@
-import { Encrypt } from '@rvohealth/dream'
-import { visit } from '@rvohealth/psychic-spec-helpers'
+import { Encrypt } from '@rvoh/dream'
+import { visit } from '@rvoh/psychic-spec-helpers'
 import createUser from '../../test-app/spec/factories/UserFactory'
 
 describe('user visits a page implementing websockets', () => {

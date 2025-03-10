@@ -1,6 +1,6 @@
 import '../../../test-app/src/conf/loadEnv'
 
-import { launchViteServer, stopViteServer } from '@rvohealth/psychic-spec-helpers'
+import { launchViteServer, stopViteServer } from '@rvoh/psychic-spec-helpers'
 import initializePsychicApplication from '../../../test-app/src/cli/helpers/initializePsychicApplication'
 
 export async function setup() {

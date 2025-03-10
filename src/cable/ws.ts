@@ -1,4 +1,4 @@
-import { Dream, IdType, uniq } from '@rvohealth/dream'
+import { Dream, IdType, uniq } from '@rvoh/dream'
 import { Emitter } from '@socket.io/redis-emitter'
 import Redis from 'ioredis'
 import { DateTime } from 'luxon'

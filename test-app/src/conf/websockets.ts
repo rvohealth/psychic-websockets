@@ -1,4 +1,4 @@
-import { Encrypt } from '@rvohealth/dream'
+import { Encrypt } from '@rvoh/dream'
 import Redis from 'ioredis'
 import { PsychicApplicationWebsockets } from '../../../src'
 import Ws from '../../../src/cable/ws'

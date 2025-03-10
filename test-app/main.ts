@@ -1,6 +1,6 @@
 import './src/conf/global'
 
-import { PsychicServer } from '@rvohealth/psychic'
+import { PsychicServer } from '@rvoh/psychic'
 import initializePsychicApplication from './src/cli/helpers/initializePsychicApplication'
 
 async function start() {
