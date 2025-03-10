@@ -1,4 +1,4 @@
-import http from 'http'
+import * as http from 'http'
 import Cable from '../../../src/cable'
 import { PsychicServer } from '@rvohealth/psychic'
 import PsychicApplicationWebsockets from '../../../src/psychic-application-websockets'
@@ -20,10 +20,10 @@ describe('cable#listen', () => {
     httpServer = http.createServer(server.expressApp)
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    jest.spyOn(cable.httpServer, 'listen').mockReturnValue(httpServer)
+    vi.spyOn(cable.httpServer, 'listen').mockReturnValue(httpServer)
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-    jest.spyOn(cable.io!, 'on').mockReturnValue(null as any)
+    vi.spyOn(cable.io!, 'on').mockReturnValue(null as any)
   })
 
   it('starts an http server', async () => {

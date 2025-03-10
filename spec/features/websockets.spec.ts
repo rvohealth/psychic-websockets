@@ -1,5 +1,5 @@
 import { Encrypt } from '@rvohealth/dream'
-import visit from './helpers/visit'
+import { visit } from '@rvohealth/psychic-spec-helpers'
 import createUser from '../../test-app/spec/factories/UserFactory'
 
 describe('user visits a page implementing websockets', () => {
@@ -10,9 +10,7 @@ describe('user visits a page implementing websockets', () => {
       key: process.env.APP_ENCRYPTION_KEY!,
     })
 
-    await visit(`/socket-test/${token}`)
-    await expect(page).toHaveSelector(`body:has-text("websockets connected")`, {
-      timeout: 4000,
-    })
+    const page = await visit(`/socket-test/${token}`)
+    await expect(page).toMatchTextContent('websockets connected')
   })
 })

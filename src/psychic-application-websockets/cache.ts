@@ -1,4 +1,4 @@
-import PsychicApplicationWebsockets from '.'
+import PsychicApplicationWebsockets from './index.js'
 
 let _psychicAppWebsockets: PsychicApplicationWebsockets | undefined = undefined
 
