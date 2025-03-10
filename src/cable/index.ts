@@ -1,4 +1,4 @@
-import { PsychicApplication, PsychicServer } from '@rvohealth/psychic'
+import { PsychicApplication, PsychicServer } from '@rvoh/psychic'
 import { createAdapter } from '@socket.io/redis-adapter'
 import * as colors from 'colorette'
 import { Application } from 'express'

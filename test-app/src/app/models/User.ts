@@ -1,4 +1,4 @@
-import { DreamColumn, DreamSerializers } from '@rvohealth/dream'
+import { DreamColumn, DreamSerializers } from '@rvoh/dream'
 import ApplicationModel from './ApplicationModel'
 
 export default class User extends ApplicationModel {

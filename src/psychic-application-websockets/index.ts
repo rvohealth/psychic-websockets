@@ -1,4 +1,4 @@
-import { PsychicApplication } from '@rvohealth/psychic'
+import { PsychicApplication } from '@rvoh/psychic'
 import { Cluster, Redis } from 'ioredis'
 import { Socket, Server as SocketServer } from 'socket.io'
 import Cable from '../cable/index.js'

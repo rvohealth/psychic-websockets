@@ -1,6 +1,6 @@
 import * as http from 'http'
 import Cable from '../../../src/cable'
-import { PsychicServer } from '@rvohealth/psychic'
+import { PsychicServer } from '@rvoh/psychic'
 import PsychicApplicationWebsockets from '../../../src/psychic-application-websockets'
 
 describe('cable#start', () => {
