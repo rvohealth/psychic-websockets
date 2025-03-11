@@ -151,7 +151,6 @@ export const schema = {
       },
     },
     virtualColumns: [],
-    encryptedColumns: [],
     associations: {
       
     },
