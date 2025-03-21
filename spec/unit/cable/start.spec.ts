@@ -28,7 +28,7 @@ describe('cable#start', () => {
     await cable.start()
     const port = 7777
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(cable.listen).toHaveBeenCalledWith({ port: port, withFrontEndClient: false, frontEndPort: 3000 })
+    expect(cable.listen).toHaveBeenCalledWith({ port: port })
   })
 
   it('attaches a socket io instance to the cable instance', async () => {
