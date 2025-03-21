@@ -741,6 +741,7 @@ __metadata:
     typescript: "npm:^5.5.4"
     typescript-eslint: "npm:=7.18.0"
     vitest: "npm:^3.0.8"
+    yoctocolors: "npm:^2.1.1"
   peerDependencies:
     "@rvoh/dream": "*"
     "@rvoh/psychic": "*"
@@ -6351,6 +6352,13 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: 10c0/dceb44c28578b31641e13695d200d34ec4ab3966a5729814d5445b194933c096b7ced71494ce53a0e8820685d1d010df8b2422e5bf2cdea7e469d97ffbea306f
+  languageName: node
+  linkType: hard
+
+"yoctocolors@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "yoctocolors@npm:2.1.1"
+  checksum: 10c0/85903f7fa96f1c70badee94789fade709f9d83dab2ec92753d612d84fcea6d34c772337a9f8914c6bed2f5fc03a428ac5d893e76fab636da5f1236ab725486d0
   languageName: node
   linkType: hard
 
