@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@rvoh/psychic-websockets",
   "description": "Websocket system for Psychic applications",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "RVOHealth",
   "repository": "https://github.com/rvohealth/psychic-websockets.git",
   "license": "MIT",
@@ -76,5 +76,8 @@
     "typescript-eslint": "=7.18.0",
     "vitest": "^3.0.8"
   },
-  "packageManager": "yarn@4.4.1"
+  "packageManager": "yarn@4.4.1",
+  "dependencies": {
+    "yoctocolors": "^2.1.1"
+  }
 }

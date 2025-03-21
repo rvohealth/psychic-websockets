@@ -1,6 +1,6 @@
 import { PsychicApplication, PsychicServer } from '@rvoh/psychic'
 import { createAdapter } from '@socket.io/redis-adapter'
-import * as colors from 'colorette'
+import colors from 'yoctocolors'
 import { Application } from 'express'
 import * as http from 'http'
 import * as socketio from 'socket.io'
