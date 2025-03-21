@@ -18,12 +18,9 @@ export default class PsychicApplicationWebsockets {
       await cable?.stop()
     })
 
-    psychicApp.override('server:start', async (psychicServer, { port, withFrontEndClient, frontEndPort }) => {
+    psychicApp.override('server:start', async (psychicServer, { port }) => {
       const cable = new Cable(psychicServer.expressApp, psychicWsApp)
-      await cable.start(port, {
-        withFrontEndClient,
-        frontEndPort,
-      })
+      await cable.start(port)
       psychicServer.attach('cable', cable)
 
       return cable.httpServer

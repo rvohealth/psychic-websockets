@@ -30,16 +30,7 @@ export default class Cable {
     this.io = new socketio.Server(this.httpServer, { cors: this.config.psychicApp.corsOptions })
   }
 
-  public async start(
-    port?: number,
-    {
-      withFrontEndClient = false,
-      frontEndPort = 3000,
-    }: {
-      withFrontEndClient?: boolean
-      frontEndPort?: number
-    } = {},
-  ) {
+  public async start(port?: number) {
     this.connect()
 
     for (const hook of this.config.hooks.wsStart) {
@@ -78,8 +69,6 @@ export default class Cable {
     const psychicAppWebsockets = PsychicApplicationWebsockets.getOrFail()
     await this.listen({
       port: parseInt((port || psychicAppWebsockets.psychicApp.port).toString()),
-      withFrontEndClient,
-      frontEndPort,
     })
   }
 
@@ -99,15 +88,7 @@ export default class Cable {
     }
   }
 
-  public async listen({
-    port,
-    withFrontEndClient,
-    frontEndPort,
-  }: {
-    port: number | string
-    withFrontEndClient: boolean
-    frontEndPort: number
-  }) {
+  public async listen({ port }: { port: number | string }) {
     return new Promise(accept => {
       this.httpServer.listen(port, () => {
         if (!EnvInternal.isTest) {
@@ -117,10 +98,10 @@ export default class Cable {
           app.logger.info('\n')
           app.logger.info(colors.cyan('socket server started                                      '))
           app.logger.info(
-            colors.cyan(`psychic dev server started at port ${colors.bgBlueBright(colors.green(port))}`),
+            colors.cyan(
+              `psychic dev server started at port ${colors.bgBlueBright(colors.green(port.toString()))}`,
+            ),
           )
-          if (withFrontEndClient)
-            app.logger.info(`client server started at port ${colors.cyan(frontEndPort)}`)
           app.logger.info('\n')
         }
 

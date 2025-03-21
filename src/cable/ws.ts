@@ -1,6 +1,6 @@
 import { Dream, IdType, uniq } from '@rvoh/dream'
 import { Emitter } from '@socket.io/redis-emitter'
-import Redis from 'ioredis'
+import { Redis } from 'ioredis'
 import { DateTime } from 'luxon'
 import { Socket } from 'socket.io'
 import EnvInternal from '../helpers/EnvInternal.js'
