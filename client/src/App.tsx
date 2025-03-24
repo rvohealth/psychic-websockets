@@ -1,10 +1,10 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
 import { io } from 'socket.io-client'
-import baseWsUrl from './helpers/baseWsUrl.js'
-import viteEnvValue from './helpers/viteEnvValue.js'
+import baseWsUrl from './helpers/baseWsUrl'
+import viteEnvValue from './helpers/viteEnvValue'
 
-import './App.css.js'
+import './App.css'
 import { Route, Routes, useParams } from 'react-router'
 
 export default function App() {
