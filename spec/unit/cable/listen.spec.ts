@@ -1,7 +1,7 @@
-import * as http from 'http'
-import Cable from '../../../src/cable'
 import { PsychicServer } from '@rvoh/psychic'
-import PsychicApplicationWebsockets from '../../../src/psychic-application-websockets'
+import * as http from 'http'
+import Cable from '../../../src/cable/index.js'
+import PsychicApplicationWebsockets from '../../../src/psychic-application-websockets/index.js'
 
 describe('cable#listen', () => {
   let server: PsychicServer

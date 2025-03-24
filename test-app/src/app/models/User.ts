@@ -1,5 +1,5 @@
 import { DreamColumn, DreamSerializers } from '@rvoh/dream'
-import ApplicationModel from './ApplicationModel'
+import ApplicationModel from './ApplicationModel.js'
 
 export default class User extends ApplicationModel {
   public get table() {

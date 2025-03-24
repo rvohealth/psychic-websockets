@@ -2,12 +2,12 @@ import { DreamApplication } from '@rvoh/dream'
 import { provideDreamViteMatchers, truncate } from '@rvoh/dream-spec-helpers'
 import { PsychicServer } from '@rvoh/psychic'
 import { providePuppeteerViteMatchers } from '@rvoh/psychic-spec-helpers'
-import initializePsychicApplication from '../../../test-app/src/cli/helpers/initializePsychicApplication'
+import initializePsychicApplication from '../../../test-app/src/cli/helpers/initializePsychicApplication.js'
 
 provideDreamViteMatchers()
 providePuppeteerViteMatchers()
 
-// jest.setTimeout(
+// vi.setTimeout(
 //   (process.env.JEST_FEATURE_TIMEOUT_SECONDS && parseInt(process.env.JEST_FEATURE_TIMEOUT_SECONDS) * 1000) ||
 //     125000,
 // )
@@ -24,7 +24,7 @@ providePuppeteerViteMatchers()
 
 let server: PsychicServer
 
-beforeEach(async () => {
+beforeAll(async () => {
   try {
     await initializePsychicApplication()
   } catch (err) {
@@ -34,10 +34,12 @@ beforeEach(async () => {
 
   server = new PsychicServer()
   await server.start(parseInt(process.env.DEV_SERVER_PORT || '7778'))
+})
 
+beforeEach(async () => {
   await truncate(DreamApplication)
-}, 120000)
+})
 
-afterEach(async () => {
-  await server.stop({ bypassClosingDbConnections: true })
+afterAll(async () => {
+  await server.stop()
 })
