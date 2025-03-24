@@ -1,9 +1,9 @@
 import { DateTime } from '@rvoh/dream'
 import { MockInstance } from 'vitest'
-import redisWsKey, * as RedisWsKeyModule from '../../../src/cable/redisWsKey'
-import Ws, { InvalidWsPathError } from '../../../src/cable/ws'
-import PsychicApplicationWebsockets from '../../../src/psychic-application-websockets'
-import createUser from '../../../test-app/spec/factories/UserFactory'
+import redisWsKey, * as RedisWsKeyModule from '../../../src/cable/redisWsKey.js'
+import Ws, { InvalidWsPathError } from '../../../src/cable/ws.js'
+import PsychicApplicationWebsockets from '../../../src/psychic-application-websockets/index.js'
+import createUser from '../../../test-app/spec/factories/UserFactory.js'
 
 describe('Ws', () => {
   describe('.register', () => {

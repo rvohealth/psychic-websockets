@@ -1,6 +1,6 @@
 import { Encrypt } from '@rvoh/dream'
 import { visit } from '@rvoh/psychic-spec-helpers'
-import createUser from '../../test-app/spec/factories/UserFactory'
+import createUser from '../../test-app/spec/factories/UserFactory.js'
 
 describe('user visits a page implementing websockets', () => {
   it('executes websocket events as expected and performs a graceful shutdown', async () => {

@@ -1,9 +1,9 @@
 import { PsychicApplication, PsychicServer } from '@rvoh/psychic'
 import { createAdapter } from '@socket.io/redis-adapter'
-import colors from 'yoctocolors'
 import { Application } from 'express'
 import * as http from 'http'
 import * as socketio from 'socket.io'
+import colors from 'yoctocolors'
 import MissingWsRedisConnection from '../error/ws/MissingWsRedisConnection.js'
 import EnvInternal from '../helpers/EnvInternal.js'
 import PsychicApplicationWebsockets, {

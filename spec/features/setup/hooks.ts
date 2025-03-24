@@ -2,7 +2,7 @@ import { DreamApplication } from '@rvoh/dream'
 import { provideDreamViteMatchers, truncate } from '@rvoh/dream-spec-helpers'
 import { PsychicServer } from '@rvoh/psychic'
 import { providePuppeteerViteMatchers } from '@rvoh/psychic-spec-helpers'
-import initializePsychicApplication from '../../../test-app/src/cli/helpers/initializePsychicApplication'
+import initializePsychicApplication from '../../../test-app/src/cli/helpers/initializePsychicApplication.js'
 
 provideDreamViteMatchers()
 providePuppeteerViteMatchers()
