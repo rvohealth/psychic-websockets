@@ -3,8 +3,11 @@
   "name": "@rvoh/psychic-websockets",
   "description": "Websocket system for Psychic applications",
   "version": "0.2.3",
-  "author": "RVOHealth",
-  "repository": "https://github.com/rvohealth/psychic-websockets.git",
+  "author": "RVO Health",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rvohealth/psychic-websockets.git"
+  },
   "license": "MIT",
   "main": "./dist/cjs/src/index.js",
   "module": "./dist/esm/src/index.js",
