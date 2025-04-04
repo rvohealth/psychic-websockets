@@ -1,7 +1,6 @@
 import { Encrypt } from '@rvoh/dream'
-import Redis from 'ioredis'
-import { PsychicApplicationWebsockets } from '../../../src.js'
-import Ws from '../../../src/cable/ws.js'
+import { Redis } from 'ioredis'
+import { PsychicApplicationWebsockets, Ws } from '../../../src/index.js'
 import User from '../app/models/User.js'
 
 export default (wsApp: PsychicApplicationWebsockets) => {

@@ -15,7 +15,11 @@ export default class PsychicApplicationWebsockets {
 
     psychicApp.on('server:shutdown', async psychicServer => {
       const cable = psychicServer.$attached.cable as Cable
-      await cable?.stop()
+      if (cable) {
+        await cable.stop()
+        await psychicWsApp.websocketOptions.subConnection?.quit()
+        psychicServer.$attached.cable = undefined
+      }
     })
 
     psychicApp.override('server:start', async (psychicServer, { port }) => {
@@ -92,6 +96,14 @@ export default class PsychicApplicationWebsockets {
   public set<Opt extends PsychicApplicationWebsocketsOption>(option: Opt, value: unknown) {
     switch (option) {
       case 'websockets':
+        if (this.websocketOptions?.connection) {
+          this.websocketOptions.connection.disconnect()
+        }
+
+        if (this.websocketOptions?.subConnection) {
+          this.websocketOptions.subConnection.disconnect()
+        }
+
         this._websocketOptions = {
           ...(value as PsychicWebsocketOptions),
           subConnection: (value as PsychicWebsocketOptions | undefined)?.connection?.duplicate(),
