@@ -5,14 +5,62 @@ import { Socket } from 'socket.io'
 import EnvInternal from '../helpers/EnvInternal.js'
 import PsychicAppWebsockets from '../psychic-app-websockets/index.js'
 import redisWsKey from './redisWsKey.js'
+import InvalidWsPathError from '../error/ws/InvalidWsPathError.js'
 
 export default class Ws<AllowedPaths extends readonly string[]> {
+  /**
+   * @internal
+   *
+   * the socket.io redis emitter instance, used to emit
+   * messages through redis to distributed websocket clusters
+   */
   public io: Emitter
+
+  /**
+   * @internal
+   *
+   * the redis client used to bind socket.io to the redis emitter
+   */
   private redisClient: Redis
+
+  /**
+   * @internal
+   *
+   * the redis client used to bind socket.io to the redis emitter
+   */
   private booted = false
+
+  /**
+   * @internal
+   *
+   * the namespace used when connecting socket.io
+   * this will default to '/' if it is not provided
+   */
   private namespace: string
+
+  /**
+   * @internal
+   *
+   * when registering your application's users with psychic-websockets,
+   * you need to provide the following:
+   *   1. an identifier for your user (i.e. user.id)
+   *   2. a redisKeyPrefix, which is used to prefix your id before storing it in redis
+   *
+   * this enables you to have multiple namespaces in redis to safely store ids,
+   * i.e.
+   *
+   *  `user:1`
+   *  `admin-user:1`
+   */
   private redisKeyPrefix: string
 
+  /**
+   * call this method to bind a socket to a particular identifier
+   *
+   * @param socket - the socket.io socket instance
+   * @param id - the identifier you wish to bind to this socket instance
+   * @param redisKeyPrefix - (optional) the prefix you wish to use to couple to this id (defaults to 'user')
+   */
   public static async register(socket: Socket, id: IdType | Dream, redisKeyPrefix: string = 'user') {
     const psychicWebsocketsApp = PsychicAppWebsockets.getOrFail()
     const redisClient = psychicWebsocketsApp.websocketOptions.connection
@@ -47,7 +95,24 @@ export default class Ws<AllowedPaths extends readonly string[]> {
   constructor(
     public allowedPaths: AllowedPaths & readonly string[],
     {
+      /**
+       * the namespace used when connecting socket.io
+       * this will default to '/' if it is not provided
+       */
       namespace = '/',
+
+      /**
+       * when registering your application's users with psychic-websockets,
+       * you need to provide the following:
+       *   1. an identifier for your user (i.e. user.id)
+       *   2. a redisKeyPrefix, which is used to prefix your id before storing it in redis
+       *
+       * this enables you to have multiple namespaces in redis to safely store ids,
+       * i.e.
+       *
+       *  `user:1`
+       *  `admin-user:1`
+       */
       redisKeyPrefix = 'user',
     }: {
       namespace?: string
@@ -58,6 +123,11 @@ export default class Ws<AllowedPaths extends readonly string[]> {
     this.redisKeyPrefix = redisKeyPrefix
   }
 
+  /**
+   * @internal
+   *
+   * establishes a new socket.io-redis emitter
+   */
   public boot() {
     if (this.booted) return
 
@@ -68,6 +138,13 @@ export default class Ws<AllowedPaths extends readonly string[]> {
     this.booted = true
   }
 
+  /**
+   * emits data to the requested id (or dream instance) and path
+   *
+   * ```ts
+   * await ws.emit(123, '/ops/howyadoin', { hello: 'world' })
+   * ```
+   */
   public async emit<T extends Ws<AllowedPaths>, const P extends AllowedPaths[number]>(
     this: T,
     id: IdType | Dream,
@@ -87,24 +164,23 @@ export default class Ws<AllowedPaths extends readonly string[]> {
     }
   }
 
+  /**
+   * @internal
+   *
+   * used to find a redis key matching the id
+   */
   public async findSocketIds(id: IdType): Promise<string[]> {
     this.boot()
     return uniq(await this.redisClient.lrange(this.redisKey(id), 0, -1))
   }
 
+  /**
+   * @internal
+   *
+   * builds a redis key using the provided identifier and the redisKeyPrefix provided
+   * when this Ws instance was constructed.
+   */
   private redisKey(userId: IdType) {
     return redisWsKey(userId, this.redisKeyPrefix)
-  }
-}
-
-export class InvalidWsPathError extends Error {
-  constructor(private invalidPath: string) {
-    super()
-  }
-
-  public get message() {
-    return `
-      Invalid path passed to Ws: "${this.invalidPath}"
-    `
   }
 }

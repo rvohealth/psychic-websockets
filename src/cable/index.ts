@@ -20,6 +20,12 @@ export default class Cable {
     this.config = config
   }
 
+  /**
+   * @internal
+   *
+   * creates a new http server and binds it to a new socket.io server.
+   * this is automatically called when you call `start`.
+   */
   public connect() {
     if (this.io) return
     // for socket.io, we have to circumvent the normal process for starting a
@@ -28,6 +34,10 @@ export default class Cable {
     this.io = new socketio.Server(this.httpServer, { cors: this.config.psychicApp.corsOptions })
   }
 
+  /**
+   * builds an http server and a socket.io server, binding to redis
+   * to enable redis pubsub, then starts the http server.
+   */
   public async start(port?: number) {
     this.connect()
 
@@ -70,6 +80,9 @@ export default class Cable {
     })
   }
 
+  /**
+   * stops the socket.io server, closing out of all redis connections
+   */
   public async stop() {
     try {
       await this.io?.close()
@@ -86,6 +99,11 @@ export default class Cable {
     }
   }
 
+  /**
+   * @internal
+   *
+   * stops the socket.io server, closing out of all redis connections
+   */
   public async listen({ port }: { port: number | string }) {
     return new Promise(accept => {
       this.httpServer.listen(port, () => {
@@ -108,6 +126,11 @@ export default class Cable {
     })
   }
 
+  /**
+   * @internal
+   *
+   * establishes redis pubsub mechanisms
+   */
   public bindToRedis() {
     const pubClient = this.config.websocketOptions.connection
     const subClient = this.config.websocketOptions.subConnection
