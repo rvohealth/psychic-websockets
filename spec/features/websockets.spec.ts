@@ -10,7 +10,7 @@ describe('user visits a page implementing websockets', () => {
       key: process.env.APP_ENCRYPTION_KEY!,
     })
 
-    const page = await visit(`/socket-test/${token}`)
+    await visit(`/socket-test/${token}`)
     await expect(page).toMatchTextContent('websockets connected')
   })
 })

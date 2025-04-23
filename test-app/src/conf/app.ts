@@ -1,7 +1,9 @@
-import { PsychicApp } from '@rvoh/psychic'
+import { DreamCLI } from '@rvoh/dream'
+import { PsychicApp, PsychicDevtools } from '@rvoh/psychic'
 import { PsychicAppWebsockets } from '../../../src/index.js'
 import importDefault from '../app/helpers/importDefault.js'
 import srcPath from '../app/helpers/srcPath.js'
+import AppEnv from './AppEnv.js'
 import inflections from './inflections.js'
 import routesCb from './routes.js'
 import websocketsConf from './websockets.js'
@@ -39,6 +41,22 @@ export default async (psy: PsychicApp) => {
     maxAge: {
       days: 4,
     },
+  })
+
+  psy.on('server:start', async () => {
+    if (AppEnv.isDevelopment) {
+      DreamCLI.logger.logStartProgress('client server starting...')
+      await PsychicDevtools.launchDevServer('clientApp', { port: 3000, cmd: 'yarn client' })
+      DreamCLI.logger.logEndProgress()
+    }
+  })
+
+  psy.on('server:shutdown', () => {
+    if (AppEnv.isDevelopment && AppEnv.boolean('CLIENT')) {
+      DreamCLI.logger.logStartProgress('client server stopping...')
+      PsychicDevtools.stopDevServer('clientApp')
+      DreamCLI.logger.logEndProgress()
+    }
   })
 }
 
