@@ -1,4 +1,4 @@
-import { PsychicApplication } from '@rvoh/psychic'
+import { PsychicApp } from '@rvoh/psychic'
 import { Cluster, Redis } from 'ioredis'
 import { Socket, Server as SocketServer } from 'socket.io'
 import Cable from '../cable/index.js'
@@ -6,7 +6,7 @@ import { cachePsychicApplicationWebsockets, getCachedPsychicApplicationWebsocket
 
 export default class PsychicApplicationWebsockets {
   public static async init(
-    psychicApp: PsychicApplication,
+    psychicApp: PsychicApp,
     cb: (app: PsychicApplicationWebsockets) => void | Promise<void>,
   ) {
     const psychicWsApp = new PsychicApplicationWebsockets(psychicApp)
@@ -39,22 +39,22 @@ export default class PsychicApplicationWebsockets {
    * Returns the cached psychic application if it has been set.
    * If it has not been set, an exception is raised.
    *
-   * The psychic application can be set by calling PsychicApplication#init
+   * The psychic application can be set by calling PsychicApp#init
    */
   public static getOrFail() {
     return getCachedPsychicApplicationWebsocketsOrFail()
   }
 
-  public psychicApp: PsychicApplication
+  public psychicApp: PsychicApp
 
-  public static log(...args: Parameters<typeof PsychicApplication.log>) {
+  public static log(...args: Parameters<typeof PsychicApp.log>) {
     const psychicWebsocketsApp = this.getOrFail()
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    return (psychicWebsocketsApp.psychicApp.constructor as typeof PsychicApplication).log(...args)
+    return (psychicWebsocketsApp.psychicApp.constructor as typeof PsychicApp).log(...args)
   }
 
-  constructor(psychicApp: PsychicApplication) {
+  constructor(psychicApp: PsychicApp) {
     this.psychicApp = psychicApp
   }
 

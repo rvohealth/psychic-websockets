@@ -1,4 +1,4 @@
-import { PsychicApplication, PsychicServer } from '@rvoh/psychic'
+import { PsychicApp, PsychicServer } from '@rvoh/psychic'
 import { createAdapter } from '@socket.io/redis-adapter'
 import { Application } from 'express'
 import * as http from 'http'
@@ -45,7 +45,7 @@ export default class Cable {
       } catch (error) {
         if (EnvInternal.boolean('PSYCHIC_DANGEROUSLY_PERMIT_WS_EXCEPTIONS')) throw error
         else {
-          ;(this.config.psychicApp.constructor as typeof PsychicApplication).logWithLevel(
+          ;(this.config.psychicApp.constructor as typeof PsychicApp).logWithLevel(
             'error',
             `
             An exception was caught in your websocket thread.
