@@ -2,13 +2,13 @@ import { DateTime } from '@rvoh/dream'
 import { MockInstance } from 'vitest'
 import redisWsKey, * as RedisWsKeyModule from '../../../src/cable/redisWsKey.js'
 import Ws, { InvalidWsPathError } from '../../../src/cable/ws.js'
-import PsychicApplicationWebsockets from '../../../src/psychic-application-websockets/index.js'
+import PsychicAppWebsockets from '../../../src/psychic-app-websockets/index.js'
 import createUser from '../../../test-app/spec/factories/UserFactory.js'
 
 describe('Ws', () => {
   describe('.register', () => {
     beforeEach(async () => {
-      const psychicApp = PsychicApplicationWebsockets.getOrFail()
+      const psychicApp = PsychicAppWebsockets.getOrFail()
       const redisClient = psychicApp.websocketOptions.connection
       await redisClient.del(`user:123:socket_ids`)
       await redisClient.del(`user:otheruserid:socket_ids`)
@@ -142,7 +142,7 @@ describe('Ws', () => {
   describe('#findSocketIds', () => {
     let ws: Ws<[]>
     beforeEach(async () => {
-      const psychicAppWebsockets = PsychicApplicationWebsockets.getOrFail()
+      const psychicAppWebsockets = PsychicAppWebsockets.getOrFail()
       const redisClient = psychicAppWebsockets.websocketOptions.connection
 
       const key = redisWsKey('150', 'user')

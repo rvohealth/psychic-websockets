@@ -1,5 +1,5 @@
 import { PsychicApp } from '@rvoh/psychic'
-import { PsychicApplicationWebsockets } from '../../../src/index.js'
+import { PsychicAppWebsockets } from '../../../src/index.js'
 import importDefault from '../app/helpers/importDefault.js'
 import srcPath from '../app/helpers/srcPath.js'
 import inflections from './inflections.js'
@@ -19,7 +19,7 @@ export default async (psy: PsychicApp) => {
   psy.set('routes', routesCb)
 
   psy.plugin(async () => {
-    await PsychicApplicationWebsockets.init(psy, websocketsConf)
+    await PsychicAppWebsockets.init(psy, websocketsConf)
   })
 
   psy.set('paths', {

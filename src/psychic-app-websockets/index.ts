@@ -2,14 +2,11 @@ import { PsychicApp } from '@rvoh/psychic'
 import { Cluster, Redis } from 'ioredis'
 import { Socket, Server as SocketServer } from 'socket.io'
 import Cable from '../cable/index.js'
-import { cachePsychicApplicationWebsockets, getCachedPsychicApplicationWebsocketsOrFail } from './cache.js'
+import { cachePsychicAppWebsockets, getCachedPsychicAppWebsocketsOrFail } from './cache.js'
 
-export default class PsychicApplicationWebsockets {
-  public static async init(
-    psychicApp: PsychicApp,
-    cb: (app: PsychicApplicationWebsockets) => void | Promise<void>,
-  ) {
-    const psychicWsApp = new PsychicApplicationWebsockets(psychicApp)
+export default class PsychicAppWebsockets {
+  public static async init(psychicApp: PsychicApp, cb: (app: PsychicAppWebsockets) => void | Promise<void>) {
+    const psychicWsApp = new PsychicAppWebsockets(psychicApp)
 
     await cb(psychicWsApp)
 
@@ -30,7 +27,7 @@ export default class PsychicApplicationWebsockets {
       return cable.httpServer
     })
 
-    cachePsychicApplicationWebsockets(psychicWsApp)
+    cachePsychicAppWebsockets(psychicWsApp)
 
     return psychicWsApp
   }
@@ -42,7 +39,7 @@ export default class PsychicApplicationWebsockets {
    * The psychic application can be set by calling PsychicApp#init
    */
   public static getOrFail() {
-    return getCachedPsychicApplicationWebsocketsOrFail()
+    return getCachedPsychicAppWebsocketsOrFail()
   }
 
   public psychicApp: PsychicApp
@@ -63,7 +60,7 @@ export default class PsychicApplicationWebsockets {
     return this._websocketOptions
   }
 
-  private _hooks: PsychicApplicationWebsocketsHooks = {
+  private _hooks: PsychicAppWebsocketsHooks = {
     wsStart: [],
     wsConnect: [],
   }
@@ -89,11 +86,11 @@ export default class PsychicApplicationWebsockets {
         break
 
       default:
-        throw new Error(`unrecognized event provided to PsychicApplicationWebsockets#on: ${hookEventType}`)
+        throw new Error(`unrecognized event provided to PsychicAppWebsockets#on: ${hookEventType}`)
     }
   }
 
-  public set<Opt extends PsychicApplicationWebsocketsOption>(option: Opt, value: unknown) {
+  public set<Opt extends PsychicAppWebsocketsOption>(option: Opt, value: unknown) {
     switch (option) {
       case 'websockets':
         if (this.websocketOptions?.connection) {
@@ -111,7 +108,7 @@ export default class PsychicApplicationWebsockets {
         break
 
       default:
-        throw new Error(`Unhandled option type passed to PsychicApplicationWebsockets#set: ${option}`)
+        throw new Error(`Unhandled option type passed to PsychicAppWebsockets#set: ${option}`)
     }
   }
 }
@@ -120,11 +117,11 @@ interface PsychicWebsocketOptions {
   connection: Redis
 }
 
-export type PsychicApplicationWebsocketsOption = 'websockets'
+export type PsychicAppWebsocketsOption = 'websockets'
 
 export type PsychicWebsocketsHookEventType = 'ws:start' | 'ws:connect'
 
-export interface PsychicApplicationWebsocketsHooks {
+export interface PsychicAppWebsocketsHooks {
   wsStart: ((server: SocketServer) => void | Promise<void>)[]
   wsConnect: ((socket: Socket) => void | Promise<void>)[]
 }

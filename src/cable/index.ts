@@ -1,23 +1,21 @@
 import { PsychicApp, PsychicServer } from '@rvoh/psychic'
 import { createAdapter } from '@socket.io/redis-adapter'
-import { Application } from 'express'
+import { Express } from 'express'
 import * as http from 'http'
 import * as socketio from 'socket.io'
 import colors from 'yoctocolors'
 import MissingWsRedisConnection from '../error/ws/MissingWsRedisConnection.js'
 import EnvInternal from '../helpers/EnvInternal.js'
-import PsychicApplicationWebsockets, {
-  RedisOrRedisClusterConnection,
-} from '../psychic-application-websockets/index.js'
+import PsychicAppWebsockets, { RedisOrRedisClusterConnection } from '../psychic-app-websockets/index.js'
 
 export default class Cable {
-  public app: Application
+  public app: Express
   public io: socketio.Server | undefined
   public httpServer: http.Server
-  private config: PsychicApplicationWebsockets
+  private config: PsychicAppWebsockets
   private redisConnections: RedisOrRedisClusterConnection[] = []
 
-  constructor(app: Application, config: PsychicApplicationWebsockets) {
+  constructor(app: Express, config: PsychicAppWebsockets) {
     this.app = app
     this.config = config
   }
@@ -66,7 +64,7 @@ export default class Cable {
 
     this.bindToRedis()
 
-    const psychicAppWebsockets = PsychicApplicationWebsockets.getOrFail()
+    const psychicAppWebsockets = PsychicAppWebsockets.getOrFail()
     await this.listen({
       port: parseInt((port || psychicAppWebsockets.psychicApp.port).toString()),
     })
@@ -92,7 +90,7 @@ export default class Cable {
     return new Promise(accept => {
       this.httpServer.listen(port, () => {
         if (!EnvInternal.isTest) {
-          const app = PsychicApplicationWebsockets.getOrFail().psychicApp
+          const app = PsychicAppWebsockets.getOrFail().psychicApp
 
           app.logger.info(PsychicServer.asciiLogo())
           app.logger.info('\n')
@@ -120,16 +118,16 @@ export default class Cable {
     this.redisConnections.push(subClient)
 
     pubClient.on('error', error => {
-      PsychicApplicationWebsockets.log('PUB CLIENT ERROR', error)
+      PsychicAppWebsockets.log('PUB CLIENT ERROR', error)
     })
     subClient.on('error', error => {
-      PsychicApplicationWebsockets.log('sub CLIENT ERROR', error)
+      PsychicAppWebsockets.log('sub CLIENT ERROR', error)
     })
 
     try {
       this.io!.adapter(createAdapter(pubClient, subClient))
     } catch (error) {
-      PsychicApplicationWebsockets.log('FAILED TO ADAPT', error)
+      PsychicAppWebsockets.log('FAILED TO ADAPT', error)
     }
   }
 }

@@ -1,7 +1,7 @@
 import { PsychicServer } from '@rvoh/psychic'
 import * as http from 'http'
 import Cable from '../../../src/cable/index.js'
-import PsychicApplicationWebsockets from '../../../src/psychic-application-websockets/index.js'
+import PsychicAppWebsockets from '../../../src/psychic-app-websockets/index.js'
 
 describe('cable#listen', () => {
   let server: PsychicServer
@@ -11,7 +11,7 @@ describe('cable#listen', () => {
 
   beforeEach(() => {
     server = new PsychicServer()
-    cable = new Cable(server.expressApp, PsychicApplicationWebsockets.getOrFail())
+    cable = new Cable(server.expressApp, PsychicAppWebsockets.getOrFail())
 
     cable.connect()
 

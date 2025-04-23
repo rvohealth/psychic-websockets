@@ -3,7 +3,7 @@ import { Emitter } from '@socket.io/redis-emitter'
 import { Redis } from 'ioredis'
 import { Socket } from 'socket.io'
 import EnvInternal from '../helpers/EnvInternal.js'
-import PsychicApplicationWebsockets from '../psychic-application-websockets/index.js'
+import PsychicAppWebsockets from '../psychic-app-websockets/index.js'
 import redisWsKey from './redisWsKey.js'
 
 export default class Ws<AllowedPaths extends readonly string[]> {
@@ -14,7 +14,7 @@ export default class Ws<AllowedPaths extends readonly string[]> {
   private redisKeyPrefix: string
 
   public static async register(socket: Socket, id: IdType | Dream, redisKeyPrefix: string = 'user') {
-    const psychicWebsocketsApp = PsychicApplicationWebsockets.getOrFail()
+    const psychicWebsocketsApp = PsychicAppWebsockets.getOrFail()
     const redisClient = psychicWebsocketsApp.websocketOptions.connection
     const interpretedId = (id as Dream)?.isDreamInstance ? (id as Dream).primaryKeyValue : (id as IdType)
     const key = redisWsKey(interpretedId, redisKeyPrefix)
@@ -61,7 +61,7 @@ export default class Ws<AllowedPaths extends readonly string[]> {
   public boot() {
     if (this.booted) return
 
-    const psychicWebsocketsApp = PsychicApplicationWebsockets.getOrFail()
+    const psychicWebsocketsApp = PsychicAppWebsockets.getOrFail()
     this.redisClient = psychicWebsocketsApp.websocketOptions.connection
 
     this.io = new Emitter(this.redisClient).of(this.namespace)

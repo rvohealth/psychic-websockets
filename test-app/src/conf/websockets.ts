@@ -1,9 +1,9 @@
 import { Encrypt } from '@rvoh/dream'
 import { Redis } from 'ioredis'
-import { PsychicApplicationWebsockets, Ws } from '../../../src/index.js'
+import { PsychicAppWebsockets, Ws } from '../../../src/index.js'
 import User from '../app/models/User.js'
 
-export default (wsApp: PsychicApplicationWebsockets) => {
+export default (wsApp: PsychicAppWebsockets) => {
   wsApp.set('websockets', {
     connection: new Redis({
       username: process.env.REDIS_USER,
