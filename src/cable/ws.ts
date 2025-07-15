@@ -1,11 +1,11 @@
-import { DateTime, Dream, IdType, uniq } from '@rvoh/dream'
+import { DateTime, Dream, uniq } from '@rvoh/dream'
 import { Emitter } from '@socket.io/redis-emitter'
 import { Redis } from 'ioredis'
 import { Socket } from 'socket.io'
+import InvalidWsPathError from '../error/ws/InvalidWsPathError.js'
 import EnvInternal from '../helpers/EnvInternal.js'
 import PsychicAppWebsockets from '../psychic-app-websockets/index.js'
 import redisWsKey from './redisWsKey.js'
-import InvalidWsPathError from '../error/ws/InvalidWsPathError.js'
 
 export default class Ws<AllowedPaths extends readonly string[]> {
   /**
@@ -61,20 +61,20 @@ export default class Ws<AllowedPaths extends readonly string[]> {
    * @param id - the identifier you wish to bind to this socket instance
    * @param redisKeyPrefix - (optional) the prefix you wish to use to couple to this id (defaults to 'user')
    */
-  public static async register(socket: Socket, id: IdType | Dream, redisKeyPrefix: string = 'user') {
+  public static async register(socket: Socket, id: string | number | Dream, redisKeyPrefix: string = 'user') {
     const psychicWebsocketsApp = PsychicAppWebsockets.getOrFail()
     const redisClient = psychicWebsocketsApp.websocketOptions.connection
-    const interpretedId = (id as Dream)?.isDreamInstance ? (id as Dream).primaryKeyValue : (id as IdType)
-    const key = redisWsKey(interpretedId, redisKeyPrefix)
+    const websocketId = idOrDreamToId(id)
+    const redisKey = redisWsKey(websocketId, redisKeyPrefix)
 
-    const socketIdsToKeep = await redisClient.lrange(redisWsKey(interpretedId, redisKeyPrefix), -2, -1)
+    const socketIdsToKeep = await redisClient.lrange(redisKey, -2, -1)
 
     await redisClient
       .multi()
-      .del(key)
-      .rpush(key, ...socketIdsToKeep, socket.id)
+      .del(redisKey)
+      .rpush(redisKey, ...socketIdsToKeep, socket.id)
       .expireat(
-        key,
+        redisKey,
         // TODO: make this configurable in non-test environments
         DateTime.now()
           .plus(EnvInternal.isTest ? { seconds: 15 } : { day: 1 })
@@ -83,11 +83,11 @@ export default class Ws<AllowedPaths extends readonly string[]> {
       .exec()
 
     socket.on('disconnect', async () => {
-      await redisClient.lrem(key, 1, socket.id)
+      await redisClient.lrem(redisKey, 1, socket.id)
     })
 
     const ws = new Ws(['/ops/connection-success'] as const)
-    await ws.emit(interpretedId, '/ops/connection-success', {
+    await ws.emit(websocketId, '/ops/connection-success', {
       message: 'Successfully connected to psychic websockets',
     })
   }
@@ -147,7 +147,7 @@ export default class Ws<AllowedPaths extends readonly string[]> {
    */
   public async emit<T extends Ws<AllowedPaths>, const P extends AllowedPaths[number]>(
     this: T,
-    id: IdType | Dream,
+    id: string | number | Dream,
     path: P,
     // eslint-disable-next-line
     data: any = {},
@@ -155,9 +155,7 @@ export default class Ws<AllowedPaths extends readonly string[]> {
     if (this.allowedPaths.length && !this.allowedPaths.includes(path)) throw new InvalidWsPathError(path)
 
     this.boot()
-    const socketIds = await this.findSocketIds(
-      (id as Dream)?.isDreamInstance ? (id as Dream).primaryKeyValue : (id as IdType),
-    )
+    const socketIds = await this.findSocketIds(idOrDreamToId(id))
 
     for (const socketId of socketIds) {
       this.io.to(socketId).emit(path, data)
@@ -169,9 +167,9 @@ export default class Ws<AllowedPaths extends readonly string[]> {
    *
    * used to find a redis key matching the id
    */
-  public async findSocketIds(id: IdType): Promise<string[]> {
+  public async findSocketIds(userId: string): Promise<string[]> {
     this.boot()
-    return uniq(await this.redisClient.lrange(this.redisKey(id), 0, -1))
+    return uniq(await this.redisClient.lrange(this.redisKey(userId), 0, -1))
   }
 
   /**
@@ -180,7 +178,13 @@ export default class Ws<AllowedPaths extends readonly string[]> {
    * builds a redis key using the provided identifier and the redisKeyPrefix provided
    * when this Ws instance was constructed.
    */
-  private redisKey(userId: IdType) {
+  private redisKey(userId: string) {
     return redisWsKey(userId, this.redisKeyPrefix)
   }
+}
+
+function idOrDreamToId(id: string | number | Dream) {
+  return (id as Dream)?.isDreamInstance
+    ? ((id as Dream).primaryKeyValue() as string).toString()
+    : (id as string).toString()
 }

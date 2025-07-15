@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@rvoh/psychic-websockets",
   "description": "Websocket system for Psychic applications",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "author": "RVO Health",
   "repository": {
     "type": "git",
@@ -48,10 +48,10 @@
   },
   "devDependencies": {
     "@eslint/js": "=9.0.0",
-    "@rvoh/dream": "^0.39.0",
-    "@rvoh/dream-spec-helpers": "^0.2.4",
-    "@rvoh/psychic": "^0.31.0",
-    "@rvoh/psychic-spec-helpers": "^0.6.0",
+    "@rvoh/dream": "^1.4.0",
+    "@rvoh/dream-spec-helpers": "^1.1.0",
+    "@rvoh/psychic": "^1.2.0",
+    "@rvoh/psychic-spec-helpers": "^1.0.1",
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
     "@types/express": "^4",

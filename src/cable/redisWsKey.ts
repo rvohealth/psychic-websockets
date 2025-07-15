@@ -1,5 +1,3 @@
-import { IdType } from '@rvoh/dream'
-
-export default function redisWsKey(userId: IdType, redisKeyPrefix: string) {
-  return `${redisKeyPrefix}:${userId}:socket_ids`
+export default function redisWsKey(websocketId: string, redisKeyPrefix: string) {
+  return `${redisKeyPrefix}:${websocketId}:socket_ids`
 }

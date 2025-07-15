@@ -1,7 +1,8 @@
-import { DateTime } from '@rvoh/dream'
+import { DateTime, sort } from '@rvoh/dream'
 import { MockInstance } from 'vitest'
 import redisWsKey, * as RedisWsKeyModule from '../../../src/cable/redisWsKey.js'
-import Ws, { InvalidWsPathError } from '../../../src/cable/ws.js'
+import Ws from '../../../src/cable/ws.js'
+import InvalidWsPathError from '../../../src/error/ws/InvalidWsPathError.js'
 import PsychicAppWebsockets from '../../../src/psychic-app-websockets/index.js'
 import createUser from '../../../test-app/spec/factories/UserFactory.js'
 
@@ -43,7 +44,7 @@ describe('Ws', () => {
         await Ws.register({ id: '234', on: vi.fn() } as any, '123')
 
         const socketIds = await new Ws([]).findSocketIds('123')
-        expect(socketIds).toEqual(['789', '345', '234'])
+        expect(sort(socketIds)).toEqual(['234', '345', '789'])
       })
     })
 
@@ -101,7 +102,7 @@ describe('Ws', () => {
     it('emits to the passed id to the default socket.io namespace, using "user" (by default) as the redis key prefix', async () => {
       buildWsInstanceForEmitTests(['456'])
       await ws.emit(123, '/ops/howyadoin', { hello: 'world' })
-      expect(findSocketIdsSpy).toHaveBeenCalledWith(123)
+      expect(findSocketIdsSpy).toHaveBeenCalledWith('123')
       expect(toSpy).toHaveBeenCalledWith('456')
       expect(emitSpy).toHaveBeenCalledWith('/ops/howyadoin', { hello: 'world' })
     })
