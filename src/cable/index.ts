@@ -1,9 +1,9 @@
-import { PsychicApp, PsychicServer } from '@rvoh/psychic'
+import { DreamCLI } from '@rvoh/dream'
+import { colorize, PsychicApp, PsychicLogos, PsychicServer } from '@rvoh/psychic'
 import { createAdapter } from '@socket.io/redis-adapter'
 import { Express } from 'express'
 import * as http from 'http'
 import * as socketio from 'socket.io'
-import colors from 'yoctocolors'
 import MissingWsRedisConnection from '../error/ws/MissingWsRedisConnection.js'
 import EnvInternal from '../helpers/EnvInternal.js'
 import PsychicAppWebsockets, { RedisOrRedisClusterConnection } from '../psychic-app-websockets/index.js'
@@ -108,17 +108,7 @@ export default class Cable {
     return new Promise(accept => {
       this.httpServer.listen(port, () => {
         if (!EnvInternal.isTest) {
-          const app = PsychicAppWebsockets.getOrFail().psychicApp
-
-          app.logger.info(PsychicServer.asciiLogo())
-          app.logger.info('\n')
-          app.logger.info(colors.cyan('socket server started                                      '))
-          app.logger.info(
-            colors.cyan(
-              `psychic dev server started at port ${colors.bgBlueBright(colors.green(port.toString()))}`,
-            ),
-          )
-          app.logger.info('\n')
+          welcomeMessage({ port })
         }
 
         accept(true)
@@ -152,5 +142,23 @@ export default class Cable {
     } catch (error) {
       PsychicAppWebsockets.log('FAILED TO ADAPT', error)
     }
+  }
+}
+
+function welcomeMessage({ port }: { port: number | string }) {
+  if (EnvInternal.isDevelopment) {
+    DreamCLI.logger.log(colorize(PsychicLogos.asciiLogo(), { color: 'greenBright' }), {
+      logPrefix: '',
+    })
+    DreamCLI.logger.log('', { logPrefix: '' })
+    DreamCLI.logger.log(colorize('✺ ' + PsychicApp.getOrFail().appName, { color: 'greenBright' }), {
+      logPrefix: '',
+    })
+    DreamCLI.logger.log(colorize(`└─ http://localhost:${port.toString()}`, { color: 'greenBright' }), {
+      logPrefix: '',
+    })
+    DreamCLI.logger.log('', { logPrefix: '' })
+  } else {
+    DreamCLI.logger.log(`psychic dev server started at port ${port} with websockets`)
   }
 }

@@ -184,7 +184,5 @@ export default class Ws<AllowedPaths extends readonly string[]> {
 }
 
 function idOrDreamToId(id: string | number | Dream) {
-  return (id as Dream)?.isDreamInstance
-    ? ((id as Dream).primaryKeyValue() as string).toString()
-    : (id as string).toString()
+  return id instanceof Dream ? (id.primaryKeyValue() as string).toString() : (id as string).toString()
 }
