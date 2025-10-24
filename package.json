@@ -39,8 +39,8 @@
     "prepack": "yarn build"
   },
   "peerDependencies": {
-    "@rvoh/dream": "*",
-    "@rvoh/psychic": "*",
+    "@rvoh/dream": "^2.0.0-alpha.2",
+    "@rvoh/psychic": "^2.0.0-alpha.1",
     "@socket.io/redis-adapter": "*",
     "@socket.io/redis-emitter": "*",
     "ioredis": "*",
