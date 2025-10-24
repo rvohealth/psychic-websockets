@@ -1,4 +1,4 @@
-import { Encrypt } from '@rvoh/dream'
+import { Encrypt } from '@rvoh/dream/utils'
 import { Redis } from 'ioredis'
 import { PsychicAppWebsockets, Ws } from '../../../src/index.js'
 import User from '../app/models/User.js'
