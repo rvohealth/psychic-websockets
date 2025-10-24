@@ -68,7 +68,7 @@
     "openapi-typescript": "^7.9.1",
     "pg": "^8.13.1",
     "prettier": "^3.3.3",
-    "puppeteer": "^24.4.0",
+    "puppeteer": "^24.26.1",
     "socket.io": "^4.8.1",
     "socket.io-adapter": "^2.5.5",
     "socket.io-client": "^4.8.1",
