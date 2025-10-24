@@ -1,4 +1,5 @@
-import { DateTime, Dream, uniq } from '@rvoh/dream'
+import { DateTime, Dream } from '@rvoh/dream'
+import { uniq } from '@rvoh/dream/utils'
 import { Emitter } from '@socket.io/redis-emitter'
 import { Redis } from 'ioredis'
 import { Socket } from 'socket.io'
