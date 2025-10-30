@@ -1,6 +1,6 @@
-import { DreamCLI } from '@rvoh/dream'
+import { DreamCLI } from '@rvoh/dream/system'
 import { PsychicApp, PsychicServer } from '@rvoh/psychic'
-import { PsychicLogos } from '@rvoh/psychic/internal'
+import { PsychicLogos } from '@rvoh/psychic/system'
 import { colorize } from '@rvoh/psychic/utils'
 import { createAdapter } from '@socket.io/redis-adapter'
 import { Express } from 'express'
