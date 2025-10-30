@@ -1,6 +1,6 @@
-import { DreamCLI } from '@rvoh/dream'
+import { DreamCLI } from '@rvoh/dream/system'
 import { PsychicApp } from '@rvoh/psychic'
-import { PsychicDevtools } from '@rvoh/psychic/internal'
+import { PsychicDevtools } from '@rvoh/psychic/system'
 import { PsychicAppWebsockets } from '../../../src/index.js'
 import importDefault from '../app/helpers/importDefault.js'
 import srcPath from '../app/helpers/srcPath.js'
