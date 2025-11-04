@@ -69,7 +69,6 @@ export default class Cable {
             ${(error as Error).message}
           `,
           )
-          console.trace()
         }
       }
     })
