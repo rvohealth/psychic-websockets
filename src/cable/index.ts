@@ -160,6 +160,6 @@ function welcomeMessage({ port }: { port: number | string }) {
     })
     DreamCLI.logger.log('', { logPrefix: '' })
   } else {
-    DreamCLI.logger.log(`psychic dev server started at port ${port} with websockets`)
+    DreamCLI.logger.log(`psychic server started at port ${port} with websockets`)
   }
 }
