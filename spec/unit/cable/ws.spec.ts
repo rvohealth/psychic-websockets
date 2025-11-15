@@ -1,4 +1,5 @@
-import { DateTime, sort } from '@rvoh/dream'
+import { DateTime } from '@rvoh/dream'
+import { sort } from '@rvoh/dream/utils'
 import { MockInstance } from 'vitest'
 import redisWsKey, * as RedisWsKeyModule from '../../../src/cable/redisWsKey.js'
 import Ws from '../../../src/cable/ws.js'

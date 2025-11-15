@@ -1,4 +1,4 @@
-import { Encrypt } from '@rvoh/dream'
+import { Encrypt } from '@rvoh/dream/utils'
 import { visit } from '@rvoh/psychic-spec-helpers'
 import createUser from '../../test-app/spec/factories/UserFactory.js'
 

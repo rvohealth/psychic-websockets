@@ -1,5 +1,7 @@
-import { DreamCLI } from '@rvoh/dream'
-import { colorize, PsychicApp, PsychicLogos, PsychicServer } from '@rvoh/psychic'
+import { DreamCLI } from '@rvoh/dream/system'
+import { PsychicApp, PsychicServer } from '@rvoh/psychic'
+import { PsychicLogos } from '@rvoh/psychic/system'
+import { colorize } from '@rvoh/psychic/utils'
 import { createAdapter } from '@socket.io/redis-adapter'
 import { Express } from 'express'
 import * as http from 'http'
@@ -67,7 +69,6 @@ export default class Cable {
             ${(error as Error).message}
           `,
           )
-          console.trace()
         }
       }
     })
@@ -159,6 +160,6 @@ function welcomeMessage({ port }: { port: number | string }) {
     })
     DreamCLI.logger.log('', { logPrefix: '' })
   } else {
-    DreamCLI.logger.log(`psychic dev server started at port ${port} with websockets`)
+    DreamCLI.logger.log(`psychic server started at port ${port} with websockets`)
   }
 }

@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@rvoh/psychic-websockets",
   "description": "Websocket system for Psychic applications",
-  "version": "0.5.0",
+  "version": "2.0.0",
   "author": "RVO Health",
   "repository": {
     "type": "git",
@@ -29,6 +29,7 @@
     "psy:js": "node ./dist/test-app/src/cli/index.js",
     "psy:ts": "tsx ./test-app/src/cli/index.ts",
     "build": "echo \"building cjs...\" && rm -rf dist && npx tsc -p ./tsconfig.cjs.build.json && echo \"building esm...\" && npx tsc -p ./tsconfig.esm.build.json",
+    "build:test-app": "rm -rf dist && echo \"building test app to esm...\" && npx tsc -p ./tsconfig.esm.build.test-app.json && echo \"building test app to cjs...\" && npx tsc -p ./tsconfig.cjs.build.test-app.json",
     "uspec": "vitest --config ./spec/unit/vite.config.ts",
     "fspec": "vitest run --config=./spec/features/vite.config.ts",
     "fspec:hanging": "vitest run --config=./spec/features/vite.config.ts --reporter=hanging-process",
@@ -38,8 +39,8 @@
     "prepack": "yarn build"
   },
   "peerDependencies": {
-    "@rvoh/dream": "*",
-    "@rvoh/psychic": "*",
+    "@rvoh/dream": "^2.0.0",
+    "@rvoh/psychic": "^2.0.0",
     "@socket.io/redis-adapter": "*",
     "@socket.io/redis-emitter": "*",
     "ioredis": "*",
@@ -48,9 +49,9 @@
   },
   "devDependencies": {
     "@eslint/js": "=9.0.0",
-    "@rvoh/dream": "^1.10.1",
+    "@rvoh/dream": "^2.0.0",
     "@rvoh/dream-spec-helpers": "^1.2.1",
-    "@rvoh/psychic": "^1.11.1",
+    "@rvoh/psychic": "^2.0.0",
     "@rvoh/psychic-spec-helpers": "^1.1.3",
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
