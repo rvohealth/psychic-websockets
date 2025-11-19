@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@rvoh/psychic-websockets",
   "description": "Websocket system for Psychic applications",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": "RVO Health",
   "repository": {
     "type": "git",
@@ -59,7 +59,7 @@
     "@types/node": "^22.5.1",
     "@types/pg": "^8",
     "@types/supertest": "^6.0.3",
-    "bullmq": "^5.12.12",
+    "bullmq": "^5.63.2",
     "eslint": "^9.9.1",
     "express": "^4.21.2",
     "ioredis": "^5.4.1",
