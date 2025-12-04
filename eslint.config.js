@@ -6,10 +6,10 @@ import typescriptParser from '@typescript-eslint/parser'
 
 const config = typescriptEslint.config(
   eslint.configs.recommended,
-  ...typescriptEslint.configs.recommendedTypeChecked,
+  typescriptEslint.configs.recommendedTypeChecked,
 
   {
-    ignores: ['docs/**/*', 'spec/tmp/**/*', 'test-app/src/types/*', '.yarn/**/*', '.yarnrc.yml'],
+    ignores: ['docs/**/*', 'spec/tmp/**/*', 'test-app/src/types/*', '.npmrc'],
   },
 
   {
