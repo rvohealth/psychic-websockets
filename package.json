@@ -23,9 +23,9 @@
     "dist/**/*"
   ],
   "scripts": {
-    "client": "yarn --cwd=./client start",
-    "client:fspec": "BROWSER=none VITE_PSYCHIC_ENV=test yarn --cwd=./client start",
-    "psy": "NODE_ENV=${NODE_ENV:-test} yarn psy:ts",
+    "client": "pnpm --cwd=./client start",
+    "client:fspec": "cd client && BROWSER=none VITE_PSYCHIC_ENV=test pnpm start",
+    "psy": "NODE_ENV=${NODE_ENV:-test} pnpm psy:ts",
     "psy:js": "node ./dist/test-app/src/cli/index.js",
     "psy:ts": "tsx ./test-app/src/cli/index.ts",
     "build": "echo \"building cjs...\" && rm -rf dist && npx tsc -p ./tsconfig.cjs.build.json && echo \"building esm...\" && npx tsc -p ./tsconfig.esm.build.json",
@@ -33,10 +33,10 @@
     "uspec": "vitest --config ./spec/unit/vite.config.ts",
     "fspec": "vitest run --config=./spec/features/vite.config.ts",
     "fspec:hanging": "vitest run --config=./spec/features/vite.config.ts --reporter=hanging-process",
-    "format": "yarn run prettier . --write",
-    "lint": "yarn run eslint --no-warn-ignored \"src/**/*.ts\" && yarn run prettier . --check",
+    "format": "pnpm prettier . --write",
+    "lint": "pnpm eslint --no-warn-ignored \"src/**/*.ts\" && pnpm prettier . --check",
     "dev": "NODE_ENV=development WORKER_COUNT=0 tsx ./test-app/main.ts",
-    "prepack": "yarn build"
+    "prepack": "pnpm build"
   },
   "peerDependencies": {
     "@rvoh/dream": "^2.0.0",
@@ -59,6 +59,7 @@
     "@types/node": "^22.5.1",
     "@types/pg": "^8",
     "@types/supertest": "^6.0.3",
+    "@typescript-eslint/parser": "^8.48.1",
     "bullmq": "^5.63.2",
     "eslint": "^9.9.1",
     "express": "^4.21.2",
@@ -78,11 +79,14 @@
     "tsx": "^4.19.3",
     "typedoc": "^0.26.6",
     "typescript": "^5.8.2",
-    "typescript-eslint": "=7.18.0",
+    "typescript-eslint": "^8.48.1",
     "vitest": "^3.2.4"
   },
-  "packageManager": "yarn@4.7.0",
   "dependencies": {
+    "commander": "^14.0.2",
+    "dotenv": "^17.2.3",
+    "pluralize-esm": "^9.0.5",
     "yoctocolors": "^2.1.1"
-  }
+  },
+  "packageManager": "pnpm@10.24.0+sha512.01ff8ae71b4419903b65c60fb2dc9d34cf8bb6e06d03bde112ef38f7a34d6904c424ba66bea5cdcf12890230bf39f9580473140ed9c946fef328b6e5238a345a"
 }
