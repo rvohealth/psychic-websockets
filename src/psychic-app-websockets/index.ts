@@ -14,7 +14,6 @@ export default class PsychicAppWebsockets {
       const cable = psychicServer.$attached.cable as Cable
       if (cable) {
         await cable.stop()
-        await psychicWsApp.websocketOptions.subConnection?.quit()
         psychicServer.$attached.cable = undefined
       }
     })

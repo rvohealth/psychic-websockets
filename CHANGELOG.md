@@ -1,3 +1,7 @@
+## 2.0.2
+
+- fix redis connection shutdown issues when stopping cable
+
 ## 2.0.1
 
 bump glob to close dependabot issue
