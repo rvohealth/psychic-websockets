@@ -83,19 +83,23 @@ export default class Cable {
 
   /**
    * stops the socket.io server, closing out of all redis connections
+   *
+   * io.close() is called first so that disconnect handlers (e.g. lrem in ws.ts)
+   * run while Redis is still open. Only after io.close() completes do we quit
+   * the Redis connections.
    */
   public async stop() {
     try {
       await this.io?.close()
-    } catch {
-      // noop
+    } catch (err) {
+      console.log('@rvoh/psychic-websockets: an error occured while shutting down socket.io:', err)
     }
 
     for (const connection of this.redisConnections) {
       try {
-        connection.disconnect()
-      } catch {
-        // noop
+        await connection.quit()
+      } catch (err) {
+        console.log('@rvoh/psychic-websockets: an error occured while quitting a redis connection', err)
       }
     }
   }
