@@ -1,15 +1,10 @@
-import { PsychicServer } from '@rvoh/psychic'
-import * as http from 'http'
 import Cable from '../../../src/cable/index.js'
 import PsychicAppWebsockets from '../../../src/psychic-app-websockets/index.js'
 
 describe('cable#start', () => {
-  let server: PsychicServer
   let cable: Cable
   beforeEach(() => {
-    server = new PsychicServer()
-    cable = new Cable(server.expressApp, PsychicAppWebsockets.getOrFail())
-    http.createServer(server.expressApp)
+    cable = new Cable(PsychicAppWebsockets.getOrFail())
     cable.connect()
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any

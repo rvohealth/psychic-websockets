@@ -2,10 +2,14 @@ import { Encrypt } from '@rvoh/dream/utils'
 import { Redis } from 'ioredis'
 import { PsychicAppWebsockets, Ws } from '../../../src/index.js'
 import User from '../app/models/User.js'
+import AppEnv from './AppEnv.js'
 
 export default (wsApp: PsychicAppWebsockets) => {
-  wsApp.set('websockets', {
-    connection: new Redis({
+  if (AppEnv.serviceRole !== 'ws' && !AppEnv.isTest) return
+
+  wsApp.set(
+    'connection',
+    new Redis({
       username: process.env.REDIS_USER,
       password: process.env.REDIS_PASSWORD,
       host: process.env.REDIS_HOST,
@@ -13,11 +17,11 @@ export default (wsApp: PsychicAppWebsockets) => {
       tls: process.env.REDIS_USE_SSL === '1' ? {} : undefined,
       maxRetriesPerRequest: null,
     }),
-  })
+  )
 
-  // ******
-  // HOOKS:
-  // ******
+  wsApp.set('socketio', {
+    // socketio server options here
+  })
 
   wsApp.on('ws:start', io => {
     __forTestingOnly('ws:start')
@@ -31,8 +35,12 @@ export default (wsApp: PsychicAppWebsockets) => {
       const user = await User.find(userId)
 
       if (user) {
-        // this automatically fires the /ops/connection-success message
         await Ws.register(socket, user.id)
+
+        const ws = new Ws(['/ops/connection-success'] as const)
+        await ws.emit(user.id, '/ops/connection-success', {
+          message: 'Successfully connected to psychic websockets',
+        })
       }
     })
   })

@@ -4,6 +4,8 @@ import { PsychicServer } from '@rvoh/psychic'
 import { providePuppeteerViteMatchers } from '@rvoh/psychic-spec-helpers'
 import initializePsychicApp from '../../../test-app/src/cli/helpers/initializePsychicApp.js'
 import getPage from '../helpers/getPage.js'
+import { PsychicDevtools } from '@rvoh/psychic/system'
+import AppEnv from '../../../test-app/src/conf/AppEnv.js'
 
 provideDreamViteMatchers(Dream)
 providePuppeteerViteMatchers()

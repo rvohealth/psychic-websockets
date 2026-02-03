@@ -8,9 +8,15 @@ class AppEnvClass extends Env<{
     | 'DEBUG'
     | 'REQUEST_LOGGING'
     | 'WEB_SERVICE'
-    | 'WORKER_SERVICE'
+    | 'WS_SERVICE'
 
-  integer: 'BG_JOBS_REDIS_PORT' | 'DB_PORT' | 'DREAM_PARALLEL_TESTS' | 'REPLICA_DB_PORT' | 'WS_REDIS_PORT'
+  integer:
+    | 'BG_JOBS_REDIS_PORT'
+    | 'WS_PORT'
+    | 'DB_PORT'
+    | 'DREAM_PARALLEL_TESTS'
+    | 'REPLICA_DB_PORT'
+    | 'WS_REDIS_PORT'
 
   string:
     | 'APP_ENCRYPTION_KEY'
@@ -28,7 +34,13 @@ class AppEnvClass extends Env<{
     | 'WS_REDIS_HOST'
     | 'WS_REDIS_PASSWORD'
     | 'WS_REDIS_USERNAME'
-}> {}
+}> {
+  public get serviceRole(): ServiceRole {
+    return AppEnv.boolean('WS_SERVICE') ? 'ws' : AppEnv.boolean('WEB_SERVICE') ? 'web' : 'unknown'
+  }
+}
+
+type ServiceRole = 'ws' | 'web' | 'unknown'
 
 const AppEnv = new AppEnvClass()
 export default AppEnv

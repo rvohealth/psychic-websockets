@@ -1,7 +1,6 @@
 import { PsychicApp } from '@rvoh/psychic'
 import { Cluster, Redis } from 'ioredis'
-import { Socket, Server as SocketServer } from 'socket.io'
-import Cable from '../cable/index.js'
+import { Socket, Server as SocketServer, ServerOptions as SocketioServerOptions } from 'socket.io'
 import { cachePsychicAppWebsockets, getCachedPsychicAppWebsocketsOrFail } from './cache.js'
 
 export default class PsychicAppWebsockets {
@@ -9,23 +8,6 @@ export default class PsychicAppWebsockets {
     const psychicWsApp = new PsychicAppWebsockets(psychicApp)
 
     await cb(psychicWsApp)
-
-    psychicApp.on('server:shutdown', async psychicServer => {
-      const cable = psychicServer.$attached.cable as Cable
-      if (cable) {
-        await cable.stop()
-        await psychicWsApp.websocketOptions.subConnection?.quit()
-        psychicServer.$attached.cable = undefined
-      }
-    })
-
-    psychicApp.override('server:start', async (psychicServer, { port }) => {
-      const cable = new Cable(psychicServer.expressApp, psychicWsApp)
-      await cable.start(port)
-      psychicServer.attach('cable', cable)
-
-      return cable.httpServer
-    })
 
     cachePsychicAppWebsockets(psychicWsApp)
 
@@ -55,9 +37,19 @@ export default class PsychicAppWebsockets {
     this.psychicApp = psychicApp
   }
 
-  private _websocketOptions: PsychicWebsocketOptions & { subConnection?: RedisOrRedisClusterConnection }
-  public get websocketOptions() {
-    return this._websocketOptions
+  private _socketioOptions: Partial<SocketioServerOptions>
+  public get socketioOptions() {
+    return this._socketioOptions
+  }
+
+  private _connection: Redis
+  public get connection() {
+    return this._connection
+  }
+
+  private _subConnection: RedisOrRedisClusterConnection
+  public get subConnection() {
+    return this._subConnection
   }
 
   private _hooks: PsychicAppWebsocketsHooks = {
@@ -90,21 +82,21 @@ export default class PsychicAppWebsockets {
     }
   }
 
-  public set<Opt extends PsychicAppWebsocketsOption>(option: Opt, value: unknown) {
+  public set<Opt extends PsychicAppWebsocketsOption>(
+    option: Opt,
+    value: Opt extends 'connection' ? Redis : Opt extends 'socketio' ? Partial<SocketioServerOptions> : never,
+  ) {
     switch (option) {
-      case 'websockets':
-        if (this.websocketOptions?.connection) {
-          this.websocketOptions.connection.disconnect()
-        }
+      case 'connection':
+        this.connection?.disconnect()
+        this.subConnection?.disconnect()
 
-        if (this.websocketOptions?.subConnection) {
-          this.websocketOptions.subConnection.disconnect()
-        }
+        this._connection = value as Redis
+        this._subConnection = (value as Redis)?.duplicate()
+        break
 
-        this._websocketOptions = {
-          ...(value as PsychicWebsocketOptions),
-          subConnection: (value as PsychicWebsocketOptions | undefined)?.connection?.duplicate(),
-        }
+      case 'socketio':
+        this._socketioOptions = value as Partial<SocketioServerOptions>
         break
 
       default:
@@ -113,11 +105,7 @@ export default class PsychicAppWebsockets {
   }
 }
 
-interface PsychicWebsocketOptions {
-  connection: Redis
-}
-
-export type PsychicAppWebsocketsOption = 'websockets'
+export type PsychicAppWebsocketsOption = 'connection' | 'socketio'
 
 export type PsychicWebsocketsHookEventType = 'ws:start' | 'ws:connect'
 
