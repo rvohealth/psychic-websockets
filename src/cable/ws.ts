@@ -1,7 +1,6 @@
 import { DateTime, Dream } from '@rvoh/dream'
 import { uniq } from '@rvoh/dream/utils'
 import { Emitter } from '@socket.io/redis-emitter'
-import { Redis } from 'ioredis'
 import { Socket } from 'socket.io'
 import InvalidWsPathError from '../error/ws/InvalidWsPathError.js'
 import EnvInternal from '../helpers/EnvInternal.js'
@@ -16,13 +15,6 @@ export default class Ws<AllowedPaths extends readonly string[]> {
    * messages through redis to distributed websocket clusters
    */
   public io: Emitter
-
-  /**
-   * @internal
-   *
-   * the redis client used to bind socket.io to the redis emitter
-   */
-  private redisClient: Redis
 
   /**
    * @internal
@@ -63,8 +55,8 @@ export default class Ws<AllowedPaths extends readonly string[]> {
    * @param redisKeyPrefix - (optional) the prefix you wish to use to couple to this id (defaults to 'user')
    */
   public static async register(socket: Socket, id: string | number | Dream, redisKeyPrefix: string = 'user') {
-    const psychicWebsocketsApp = PsychicAppWebsockets.getOrFail()
-    const redisClient = psychicWebsocketsApp.websocketOptions.connection
+    const wsApp = PsychicAppWebsockets.getOrFail()
+    const redisClient = wsApp.connection
     const websocketId = idOrDreamToId(id)
     const redisKey = redisWsKey(websocketId, redisKeyPrefix)
 
@@ -85,11 +77,6 @@ export default class Ws<AllowedPaths extends readonly string[]> {
 
     socket.on('disconnect', async () => {
       await redisClient.lrem(redisKey, 1, socket.id)
-    })
-
-    const ws = new Ws(['/ops/connection-success'] as const)
-    await ws.emit(websocketId, '/ops/connection-success', {
-      message: 'Successfully connected to psychic websockets',
     })
   }
 
@@ -132,10 +119,9 @@ export default class Ws<AllowedPaths extends readonly string[]> {
   public boot() {
     if (this.booted) return
 
-    const psychicWebsocketsApp = PsychicAppWebsockets.getOrFail()
-    this.redisClient = psychicWebsocketsApp.websocketOptions.connection
+    const wsApp = PsychicAppWebsockets.getOrFail()
 
-    this.io = new Emitter(this.redisClient).of(this.namespace)
+    this.io = new Emitter(wsApp.connection).of(this.namespace)
     this.booted = true
   }
 
@@ -170,7 +156,9 @@ export default class Ws<AllowedPaths extends readonly string[]> {
    */
   public async findSocketIds(userId: string): Promise<string[]> {
     this.boot()
-    return uniq(await this.redisClient.lrange(this.redisKey(userId), 0, -1))
+
+    const wsApp = PsychicAppWebsockets.getOrFail()
+    return uniq(await wsApp.connection.lrange(this.redisKey(userId), 0, -1))
   }
 
   /**

@@ -1,23 +1,20 @@
-import { PsychicServer } from '@rvoh/psychic'
 import * as http from 'http'
 import Cable from '../../../src/cable/index.js'
 import PsychicAppWebsockets from '../../../src/psychic-app-websockets/index.js'
 
 describe('cable#listen', () => {
-  let server: PsychicServer
   let cable: Cable
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let httpServer: any
 
   beforeEach(() => {
-    server = new PsychicServer()
-    cable = new Cable(server.expressApp, PsychicAppWebsockets.getOrFail())
+    cable = new Cable(PsychicAppWebsockets.getOrFail())
 
     cable.connect()
 
     // need to return httpServer as return value to http listen to satisfy typescript,
     // otherwise, this wouldn't be needed.
-    httpServer = http.createServer(server.expressApp)
+    httpServer = http.createServer()
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     vi.spyOn(cable.httpServer, 'listen').mockReturnValue(httpServer)

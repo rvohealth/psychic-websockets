@@ -56,7 +56,6 @@ jobs:
       TZ: UTC
       GITHUB_OAUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       APP_ENCRYPTION_KEY: ${{ secrets.APP_ENCRYPTION_KEY }}
-      LEGACY_APP_ENCRYPTION_KEY: ${{ secrets.LEGACY_APP_ENCRYPTION_KEY }}
       PSYCHIC_CORE_DEVELOPMENT: 1
     steps:
       - uses: actions/checkout@v4
@@ -104,10 +103,14 @@ jobs:
       DB_HOST: localhost
       DB_PASSWORD: postgres
       DB_PORT: 5432
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
       TZ: UTC
       GITHUB_OAUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       APP_ENCRYPTION_KEY: ${{ secrets.APP_ENCRYPTION_KEY }}
       PSYCHIC_CORE_DEVELOPMENT: 1
+      WS_PORT: 8888
+      VITE_WS_PORT: 8888
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

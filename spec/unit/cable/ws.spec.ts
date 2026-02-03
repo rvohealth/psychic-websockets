@@ -11,7 +11,7 @@ describe('Ws', () => {
   describe('.register', () => {
     beforeEach(async () => {
       const psychicApp = PsychicAppWebsockets.getOrFail()
-      const redisClient = psychicApp.websocketOptions.connection
+      const redisClient = psychicApp.connection
       await redisClient.del(`user:123:socket_ids`)
       await redisClient.del(`user:otheruserid:socket_ids`)
     })
@@ -58,29 +58,6 @@ describe('Ws', () => {
       // NOTE: would be better to get a solid test around disconnection behavior, but that would need to be
       // an end-to-end test.
       expect(onSpy).toHaveBeenCalledWith('disconnect', expect.any(Function))
-    })
-
-    it('calls emit to the passed id', async () => {
-      const emitSpy = vi.spyOn(Ws.prototype, 'emit').mockImplementation(async () => {})
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      await Ws.register({ id: '986', on: vi.fn() } as any, '987')
-
-      expect(emitSpy).toHaveBeenCalledWith('987', '/ops/connection-success', {
-        message: 'Successfully connected to psychic websockets',
-      })
-    })
-
-    context('when passed a dream', () => {
-      it('calls the primaryKeyValue of that dream instance', async () => {
-        const user = await createUser()
-        const emitSpy = vi.spyOn(Ws.prototype, 'emit').mockImplementation(async () => {})
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        await Ws.register({ id: '986', on: vi.fn() } as any, user)
-
-        expect(emitSpy).toHaveBeenCalledWith(user.id, '/ops/connection-success', {
-          message: 'Successfully connected to psychic websockets',
-        })
-      })
     })
   })
 
@@ -145,7 +122,7 @@ describe('Ws', () => {
     let ws: Ws<[]>
     beforeEach(async () => {
       const psychicAppWebsockets = PsychicAppWebsockets.getOrFail()
-      const redisClient = psychicAppWebsockets.websocketOptions.connection
+      const redisClient = psychicAppWebsockets.connection
 
       const key = redisWsKey('150', 'user')
       const otherKey = redisWsKey('160', 'howyadoin')
