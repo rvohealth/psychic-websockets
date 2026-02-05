@@ -32,23 +32,50 @@ export default class Cable {
       cors: config.psychicApp.corsOptions,
       ...config.socketioOptions,
     })
+
+    this.attachHealthCheckRoute()
   }
 
   private buildHttpServer() {
     const wsApp = PsychicAppWebsockets.getOrFail()
     const sslCredentials = wsApp.psychicApp.sslCredentials
 
-    if (sslCredentials?.key && sslCredentials?.cert) {
-      return https.createServer({
-        key: fs.readFileSync(sslCredentials.key),
-        cert: fs.readFileSync(sslCredentials.cert),
-        ca: sslCredentials.ca?.map(filePath => fs.readFileSync(filePath)),
-        rejectUnauthorized: sslCredentials?.rejectUnauthorized,
-        ...wsApp.psychicApp.httpServerOptions,
-      })
-    } else {
-      return http.createServer(wsApp.psychicApp.httpServerOptions)
-    }
+    return sslCredentials?.key && sslCredentials?.cert
+      ? https.createServer({
+          key: fs.readFileSync(sslCredentials.key),
+          cert: fs.readFileSync(sslCredentials.cert),
+          ca: sslCredentials.ca?.map(filePath => fs.readFileSync(filePath)),
+          rejectUnauthorized: sslCredentials?.rejectUnauthorized,
+          ...wsApp.psychicApp.httpServerOptions,
+        })
+      : http.createServer(wsApp.psychicApp.httpServerOptions)
+  }
+
+  private attachHealthCheckRoute() {
+    this.httpServer.on('request', (req, res) => {
+      const opts = PsychicAppWebsockets.getOrFail().healthCheckOptions
+      if (opts === null) {
+        res.writeHead(404)
+        res.end()
+        return
+      }
+
+      const sanitizedPath = `/${opts.path.replace(/^\//, '')}`
+
+      if (req.url === sanitizedPath && req.method === opts.method) {
+        if (opts.body === null) {
+          res.writeHead(200)
+          res.end()
+        } else {
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'text/plain')
+          res.end(opts.body)
+        }
+      } else {
+        res.writeHead(404)
+        res.end()
+      }
+    })
   }
 
   /**

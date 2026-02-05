@@ -60,6 +60,18 @@ export default class PsychicAppWebsockets {
     return this._hooks
   }
 
+  private defaultHealthCheckOptions: HealthCheckOptions = {
+    path: '/healthcheck',
+    method: 'GET',
+    body: null,
+  }
+  private _healthCheckOptions: HealthCheckOptions | null = {
+    ...this.defaultHealthCheckOptions,
+  }
+  public get healthCheckOptions() {
+    return this._healthCheckOptions
+  }
+
   public on<T extends PsychicWebsocketsHookEventType>(
     hookEventType: T,
     cb: T extends 'ws:start'
@@ -84,7 +96,13 @@ export default class PsychicAppWebsockets {
 
   public set<Opt extends PsychicAppWebsocketsOption>(
     option: Opt,
-    value: Opt extends 'connection' ? Redis : Opt extends 'socketio' ? Partial<SocketioServerOptions> : never,
+    value: Opt extends 'connection'
+      ? Redis
+      : Opt extends 'socketio'
+        ? Partial<SocketioServerOptions>
+        : Opt extends 'healthCheck'
+          ? Partial<HealthCheckOptions> | null
+          : never,
   ) {
     switch (option) {
       case 'connection':
@@ -93,6 +111,17 @@ export default class PsychicAppWebsockets {
 
         this._connection = value as Redis
         this._subConnection = (value as Redis)?.duplicate()
+        break
+
+      case 'healthCheck':
+        if (value === null) {
+          this._healthCheckOptions = null
+        } else {
+          this._healthCheckOptions = {
+            ...this.defaultHealthCheckOptions,
+            ...(value as HealthCheckOptions),
+          }
+        }
         break
 
       case 'socketio':
@@ -105,7 +134,13 @@ export default class PsychicAppWebsockets {
   }
 }
 
-export type PsychicAppWebsocketsOption = 'connection' | 'socketio'
+export type PsychicAppWebsocketsOption = 'connection' | 'socketio' | 'healthCheck'
+
+interface HealthCheckOptions {
+  path: string
+  method: 'GET' | 'HEAD'
+  body: string | null
+}
 
 export type PsychicWebsocketsHookEventType = 'ws:start' | 'ws:connect'
 
