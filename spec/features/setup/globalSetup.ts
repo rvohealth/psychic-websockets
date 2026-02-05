@@ -1,4 +1,3 @@
-import AppEnv from '../../../test-app/src/conf/AppEnv.js'
 import '../../../test-app/src/conf/loadEnv.js'
 
 import { PsychicDevtools } from '@rvoh/psychic/system'

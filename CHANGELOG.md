@@ -2,6 +2,8 @@
 
 Decouple psychic web server from websocket server. This was an architectural mis-step that needed to be remedied, since the single-threaded nature of node meant that failure to catch an exception within your socket.io callbacks would could cause your express server to come down as well.
 
+Additionally, a health check route has been added to the http server encapsulating the socket.io service. This route is configurable via options in the `conf/websockets.ts` file using `wsApp.set('healthCheck', opts)`.
+
 Moving forward, all apps using psychic-websockets v3 will need the following in place in order to get websockets working in your existing applications again.
 
 1. add the following to your AppEnv.ts file (you can otherwise keep it the way you had it, just need a few new booleans and a serviceRole method, as well as the new ServiceRole type):
