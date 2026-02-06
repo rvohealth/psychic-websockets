@@ -1,10 +1,9 @@
 import Cable from '../../../src/cable/index.js'
-import PsychicAppWebsockets from '../../../src/psychic-app-websockets/index.js'
 
 describe('cable#start', () => {
   let cable: Cable
   beforeEach(() => {
-    cable = new Cable(PsychicAppWebsockets.getOrFail())
+    cable = new Cable()
     cable.connect()
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
@@ -14,27 +13,18 @@ describe('cable#start', () => {
   })
 
   it('calls cable#connect to establish io and http server if they arent already established', async () => {
-    await cable.start()
+    await cable.start(8888)
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(cable.connect).toHaveBeenCalled()
   })
 
   it('calls cable#listen to start http server and sidechain io server to it', async () => {
-    await cable.start()
-    const port = 7777
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(cable.listen).toHaveBeenCalledWith({ port: port })
+    await cable.start(8888)
+    expect(cable['listen']).toHaveBeenCalledWith({ port: 8888 })
   })
 
   it('attaches a socket io instance to the cable instance', async () => {
-    await cable.start()
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(cable.io!.on).toHaveBeenCalled()
-  })
-
-  context('psychic is configured for redis as well', () => {
-    it('creates additional redis bindings', async () => {
-      // TODO: add coverage here.
-    })
+    await cable.start(8888)
+    expect(cable.io!['on']).toHaveBeenCalled()
   })
 })
