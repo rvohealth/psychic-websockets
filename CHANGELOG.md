@@ -41,7 +41,7 @@ async function startWs() {
   await initializePsychicApp()
 
   cable = new Cable()
-  await cable.start(AppEnv.integer('WS_PORT', { optional: true }) || 8888)
+  await cable.start(AppEnv.integer('WS_PORT', { optional: true }) || (AppEnv.isTest ? 8889 : 8888))
 }
 
 // begin: error handling

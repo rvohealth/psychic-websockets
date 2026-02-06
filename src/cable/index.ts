@@ -82,8 +82,8 @@ export default class Cable {
    * builds an http server and a socket.io server, binding to redis
    * to enable redis pubsub, then starts the http server.
    */
-  public async start(port?: number) {
-    this.connect()
+  public async start(port: number, httpServer?: http.Server | https.Server) {
+    this.connect(httpServer)
 
     const config = PsychicAppWebsockets.getOrFail()
 
@@ -99,10 +99,7 @@ export default class Cable {
 
     this.bindToRedis()
 
-    const psychicAppWebsockets = PsychicAppWebsockets.getOrFail()
-    await this.listen({
-      port: parseInt((port || psychicAppWebsockets.psychicApp.port).toString()),
-    })
+    await this.listen({ port })
   }
 
   /**
@@ -129,7 +126,7 @@ export default class Cable {
    *
    * stops the socket.io server, closing out of all redis connections
    */
-  public async listen({ port }: { port: number | string }) {
+  public async listen({ port }: { port: number }) {
     return new Promise(accept => {
       this.httpServer.listen(port, () => {
         if (!EnvInternal.isTest) {
@@ -171,7 +168,7 @@ export default class Cable {
   }
 }
 
-function welcomeMessage({ port }: { port: number | string }) {
+function welcomeMessage({ port }: { port: number }) {
   if (EnvInternal.isDevelopment) {
     DreamCLI.logger.log(colorize(PsychicLogos.asciiLogo(), { color: 'greenBright' }), {
       logPrefix: '',
