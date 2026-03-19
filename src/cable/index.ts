@@ -29,7 +29,8 @@ export default class Cable {
 
     const config = PsychicAppWebsockets.getOrFail()
     this.io = new socketio.Server(this.httpServer, {
-      cors: config.psychicApp.corsOptions,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+      cors: config.psychicApp.corsOptions as any,
       ...config.socketioOptions,
     })
 
