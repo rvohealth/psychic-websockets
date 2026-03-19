@@ -1,3 +1,10 @@
+## 3.1.0
+
+- We recommend you pass cors options yourself, since the types are no longer congruent. If cors configuration is needed, it should be set up in the websockets config, using `wsApp.set('socketioOptions', { cors: ... })`.
+- update to the latest psychic. Bumping minor versions because this also changes the peer dependency for psychic to ^3.0.0, which will force users to update to the latest psychic, which does possibly introduce breaking changes, if they were leveraging middleware, or else if they were tapping into `this.req` or `this.res` from a controller. See the psychic changelog for more info:
+
+https://github.com/rvohealth/psychic/blob/main/CHANGELOG.md
+
 ## 3.0.0
 
 Decouple psychic web server from websocket server. This was an architectural mis-step that needed to be remedied, since the single-threaded nature of node meant that failure to catch an exception within your socket.io callbacks would could cause your express server to come down as well.
