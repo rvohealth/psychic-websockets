@@ -7,17 +7,23 @@ import AppEnv from './AppEnv.js'
 export default (wsApp: PsychicAppWebsockets) => {
   if (AppEnv.serviceRole !== 'ws' && !AppEnv.isTest) return
 
-  wsApp.set(
-    'connection',
-    new Redis({
-      username: process.env.REDIS_USER,
-      password: process.env.REDIS_PASSWORD,
-      host: process.env.REDIS_HOST,
-      port: process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : undefined,
-      tls: process.env.REDIS_USE_SSL === '1' ? {} : undefined,
-      maxRetriesPerRequest: null,
-    }),
-  )
+  // Outside of test, the redis adapter (the default in development/production) needs
+  // a connection. In test, the default in-process adapter needs no redis: unit specs
+  // do zero redis I/O and feature specs still get real end-to-end delivery in-process
+  // via the attached socket.io server.
+  if (!AppEnv.isTest) {
+    wsApp.set(
+      'connection',
+      new Redis({
+        username: process.env.REDIS_USER,
+        password: process.env.REDIS_PASSWORD,
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : undefined,
+        tls: process.env.REDIS_USE_SSL === '1' ? {} : undefined,
+        maxRetriesPerRequest: null,
+      }),
+    )
+  }
 
   wsApp.set('socketio', {
     // socketio server options here
