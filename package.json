@@ -17,6 +17,11 @@
       "types": "./dist/types/src/index.d.ts",
       "import": "./dist/esm/src/index.js",
       "require": "./dist/cjs/src/index.js"
+    },
+    "./testing": {
+      "types": "./dist/types/src/testing/index.d.ts",
+      "import": "./dist/esm/src/testing/index.js",
+      "require": "./dist/cjs/src/testing/index.js"
     }
   },
   "files": [

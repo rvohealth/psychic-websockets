@@ -1,3 +1,9 @@
 export { default as Cable } from './cable/index.js'
+export { default as InProcessWebsocketsAdapter } from './cable/adapter/InProcessWebsocketsAdapter.js'
+export { default as RedisWebsocketsAdapter } from './cable/adapter/RedisWebsocketsAdapter.js'
 export { default as Ws } from './cable/ws.js'
 export { default as PsychicAppWebsockets } from './psychic-app-websockets/index.js'
+
+export type { RecordedBroadcast } from './cable/adapter/InProcessWebsocketsAdapter.js'
+export type { PsychicWebsocketsAdapter } from './cable/adapter/PsychicWebsocketsAdapter.js'
+export type { WebsocketsAdapterSelector } from './cable/adapter/resolveWebsocketsAdapter.js'

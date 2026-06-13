@@ -1,6 +1,10 @@
 import { PsychicApp } from '@rvoh/psychic'
 import { Cluster, Redis } from 'ioredis'
 import { Socket, Server as SocketServer, ServerOptions as SocketioServerOptions } from 'socket.io'
+import { PsychicWebsocketsAdapter } from '../cable/adapter/PsychicWebsocketsAdapter.js'
+import resolveWebsocketsAdapter, {
+  WebsocketsAdapterSelector,
+} from '../cable/adapter/resolveWebsocketsAdapter.js'
 import { cachePsychicAppWebsockets, getCachedPsychicAppWebsocketsOrFail } from './cache.js'
 
 export default class PsychicAppWebsockets {
@@ -50,6 +54,19 @@ export default class PsychicAppWebsockets {
   private _subConnection: RedisOrRedisClusterConnection
   public get subConnection() {
     return this._subConnection
+  }
+
+  private _adapterSelector: WebsocketsAdapterSelector | undefined
+  private _resolvedAdapter: PsychicWebsocketsAdapter | undefined
+
+  /**
+   * Returns the websockets adapter for this environment, resolving (and memoizing)
+   * the configured selector on first use. Defaults cable.yml-style: `test` →
+   * in-process, `development`/`production` → redis. Override with
+   * `wsApp.set('adapter', 'redis' | 'in_process' | <instance>)`.
+   */
+  public adapter(): PsychicWebsocketsAdapter {
+    return (this._resolvedAdapter ??= resolveWebsocketsAdapter(this._adapterSelector))
   }
 
   private _hooks: PsychicAppWebsocketsHooks = {
@@ -102,7 +119,9 @@ export default class PsychicAppWebsockets {
         ? Partial<SocketioServerOptions>
         : Opt extends 'healthCheck'
           ? Partial<HealthCheckOptions> | null
-          : never,
+          : Opt extends 'adapter'
+            ? WebsocketsAdapterSelector
+            : never,
   ) {
     switch (option) {
       case 'connection':
@@ -111,6 +130,11 @@ export default class PsychicAppWebsockets {
 
         this._connection = value as Redis
         this._subConnection = (value as Redis)?.duplicate()
+        break
+
+      case 'adapter':
+        this._adapterSelector = value as WebsocketsAdapterSelector
+        this._resolvedAdapter = undefined
         break
 
       case 'healthCheck':
@@ -134,7 +158,7 @@ export default class PsychicAppWebsockets {
   }
 }
 
-export type PsychicAppWebsocketsOption = 'connection' | 'socketio' | 'healthCheck'
+export type PsychicAppWebsocketsOption = 'connection' | 'socketio' | 'healthCheck' | 'adapter'
 
 interface HealthCheckOptions {
   path: string
