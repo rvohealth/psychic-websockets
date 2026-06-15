@@ -9,8 +9,9 @@ export default (wsApp: PsychicAppWebsockets) => {
 
   // Outside of test, the redis adapter (the default in development/production) needs
   // a connection. In test, the default in-process adapter needs no redis: unit specs
-  // do zero redis I/O and feature specs still get real end-to-end delivery in-process
-  // via the attached socket.io server.
+  // do zero redis I/O, and feature specs get real in-process delivery for broadcasts
+  // emitted within the websocket-server process (e.g. ws:start handlers) via the
+  // attached socket.io server. Cross-process fan-out still needs redis, as in prod.
   if (!AppEnv.isTest) {
     wsApp.set(
       'connection',
