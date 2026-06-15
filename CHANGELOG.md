@@ -1,3 +1,11 @@
+## 3.3.0
+
+- The two previously-hardcoded connection limits are now configurable on the websockets app:
+  - `wsApp.set('maxConnectionsPerUser', n)` — the maximum number of sockets registered simultaneously per user. Registering beyond this cap evicts the user's oldest socket. Defaults to `3` (the prior hardcoded value). Redis adapter only.
+  - `wsApp.set('maxConnectionTtl', { seconds?, minutes?, hours?, days? })` — the TTL on a user's socket-id registry key, expressed as a whole-unit duration (matching `psychic-workers`' job-delay convention). Defaults to `{ days: 1 }`.
+- `maxConnectionTtl` is a garbage-collection backstop on the registry entry, **not** the live socket's lifetime. It cleans up entries left behind when a socket disconnects ungracefully and the `disconnect` handler never fires. The live socket's liveness is governed by socket.io's ping settings (`socketioOptions`), so set the TTL comfortably above the longest connection you expect — if it expires while a socket is still connected, emits to that user silently stop.
+- No change is required on upgrade: both options default to the prior production values.
+
 ## 3.2.0
 
 - Adds a per-environment websockets transport **adapter seam**, modeled on Rails ActionCable's `cable.yml`. The transport is now selected per environment instead of always using Redis:
