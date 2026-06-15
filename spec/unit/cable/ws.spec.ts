@@ -1,169 +1,137 @@
-import { DateTime } from '@rvoh/dream'
-import { sort } from '@rvoh/dream/utils'
-import { MockInstance } from 'vitest'
-import redisWsKey, * as RedisWsKeyModule from '../../../src/cable/redisWsKey.js'
 import Ws from '../../../src/cable/ws.js'
 import InvalidWsPathError from '../../../src/error/ws/InvalidWsPathError.js'
 import PsychicAppWebsockets from '../../../src/psychic-app-websockets/index.js'
 import createUser from '../../../test-app/spec/factories/UserFactory.js'
 
+// `Ws` is a thin facade: it validates paths, shapes the namespaced user key, and
+// delegates registry + delivery to whichever adapter is active for the environment
+// (in-process in test). These specs assert that delegation; the adapters' own
+// behavior is covered in spec/unit/cable/adapter/*.
+function activeAdapter() {
+  return PsychicAppWebsockets.getOrFail().adapter()
+}
+
 describe('Ws', () => {
   describe('.register', () => {
-    beforeEach(async () => {
-      const psychicApp = PsychicAppWebsockets.getOrFail()
-      const redisClient = psychicApp.connection
-      await redisClient.del(`user:123:socket_ids`)
-      await redisClient.del(`user:otheruserid:socket_ids`)
+    it('delegates to the adapter with the default-prefixed user key', async () => {
+      const registerSpy = vi.spyOn(activeAdapter(), 'register').mockResolvedValue()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+      const socket: any = { id: '456', on: vi.fn() }
+
+      await Ws.register(socket, '123')
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      expect(registerSpy).toHaveBeenCalledWith('user:123', socket)
     })
 
-    it('puts socket id in redis', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      await Ws.register({ id: '456', on: vi.fn() } as any, '123')
+    context('with a custom redisKeyPrefix', () => {
+      it('namespaces the user key with the custom prefix', async () => {
+        const registerSpy = vi.spyOn(activeAdapter(), 'register').mockResolvedValue()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        const socket: any = { id: '456', on: vi.fn() }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      await Ws.register({ id: '789', on: vi.fn() } as any, '123')
+        await Ws.register(socket, '123', 'admin-user')
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      await Ws.register({ id: '101', on: vi.fn() } as any, 'otheruserid')
-
-      const socketIds = await new Ws([]).findSocketIds('123')
-      expect(socketIds).toEqual(['456', '789'])
-    })
-
-    context('with more than 3 register calls for the same user', () => {
-      it('restricts to 3 per unique id', async () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        await Ws.register({ id: '456', on: vi.fn() } as any, '123')
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        await Ws.register({ id: '789', on: vi.fn() } as any, '123')
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        await Ws.register({ id: '345', on: vi.fn() } as any, '123')
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-        await Ws.register({ id: '234', on: vi.fn() } as any, '123')
-
-        const socketIds = await new Ws([]).findSocketIds('123')
-        expect(sort(socketIds)).toEqual(['234', '345', '789'])
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        expect(registerSpy).toHaveBeenCalledWith('admin-user:123', socket)
       })
     })
 
-    it('binds disconnect logic to socket', async () => {
-      const onSpy = vi.fn()
+    context('when passed a dream', () => {
+      it('uses the primaryKeyValue of that dream', async () => {
+        const user = await createUser()
+        const registerSpy = vi.spyOn(activeAdapter(), 'register').mockResolvedValue()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+        const socket: any = { id: '456', on: vi.fn() }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      await Ws.register({ id: '456', on: onSpy } as any, '123')
+        await Ws.register(socket, user)
 
-      // NOTE: would be better to get a solid test around disconnection behavior, but that would need to be
-      // an end-to-end test.
-      expect(onSpy).toHaveBeenCalledWith('disconnect', expect.any(Function))
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        expect(registerSpy).toHaveBeenCalledWith(`user:${user.id}`, socket)
+      })
     })
   })
 
   describe('#emit', () => {
-    let ws: Ws<readonly string[]>
-    let findSocketIdsSpy: MockInstance
-    let toSpy: MockInstance
-    let emitSpy: MockInstance
+    it('delegates to the adapter with namespace, user key, path, and data', async () => {
+      const emitSpy = vi.spyOn(activeAdapter(), 'emit').mockResolvedValue()
+      const ws = new Ws(['/ops/howyadoin'] as const)
 
-    function buildWsInstanceForEmitTests(findSocketIdsValue: string[]) {
-      ws = new Ws(['/ops/howyadoin'] as const)
-      ws.boot()
-
-      findSocketIdsSpy = vi.spyOn(ws, 'findSocketIds').mockResolvedValue(findSocketIdsValue)
-      emitSpy = vi.fn()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      toSpy = vi.spyOn(ws.io, 'to').mockReturnValue({ emit: emitSpy } as any)
-    }
-
-    it('emits to the passed id to the default socket.io namespace, using "user" (by default) as the redis key prefix', async () => {
-      buildWsInstanceForEmitTests(['456'])
       await ws.emit(123, '/ops/howyadoin', { hello: 'world' })
-      expect(findSocketIdsSpy).toHaveBeenCalledWith('123')
-      expect(toSpy).toHaveBeenCalledWith('456')
-      expect(emitSpy).toHaveBeenCalledWith('/ops/howyadoin', { hello: 'world' })
+
+      expect(emitSpy).toHaveBeenCalledWith('/', 'user:123', '/ops/howyadoin', { hello: 'world' })
     })
 
-    context('findSocketIds does not find any socket ids for the user', () => {
-      it('does not emit to the passed id with the "user" namespace', async () => {
-        buildWsInstanceForEmitTests([])
+    context('with a custom namespace and redisKeyPrefix', () => {
+      it('passes both through to the adapter', async () => {
+        const emitSpy = vi.spyOn(activeAdapter(), 'emit').mockResolvedValue()
+        const ws = new Ws(['/ops/howyadoin'] as const, { namespace: '/admin', redisKeyPrefix: 'admin-user' })
+
         await ws.emit(123, '/ops/howyadoin', { hello: 'world' })
-        expect(toSpy).not.toHaveBeenCalled()
-        expect(emitSpy).not.toHaveBeenCalled()
+
+        expect(emitSpy).toHaveBeenCalledWith('/admin', 'admin-user:123', '/ops/howyadoin', { hello: 'world' })
       })
     })
 
     context('when passed a dream', () => {
       it('emits to the primaryKeyValue of that dream', async () => {
         const user = await createUser()
-        buildWsInstanceForEmitTests(['456'])
+        const emitSpy = vi.spyOn(activeAdapter(), 'emit').mockResolvedValue()
+        const ws = new Ws(['/ops/howyadoin'] as const)
+
         await ws.emit(user, '/ops/howyadoin', { hello: 'world' })
-        expect(toSpy).toHaveBeenCalledWith('456')
-        expect(findSocketIdsSpy).toHaveBeenCalledWith(user.id)
-        expect(emitSpy).toHaveBeenCalledWith('/ops/howyadoin', { hello: 'world' })
+
+        expect(emitSpy).toHaveBeenCalledWith('/', `user:${user.id}`, '/ops/howyadoin', { hello: 'world' })
       })
     })
 
     context('when passed an invalid path', () => {
-      it('raises an exception', async () => {
-        const user = await createUser()
-        buildWsInstanceForEmitTests(['456'])
+      it('raises an exception and does not delegate to the adapter', async () => {
+        const emitSpy = vi.spyOn(activeAdapter(), 'emit').mockResolvedValue()
+        const ws = new Ws(['/ops/howyadoin'] as const)
 
         await expect(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ws.emit(user, '/ops/whoopsthisiswrong' as any, { hello: 'world' }),
+          ws.emit(123, '/ops/whoopsthisiswrong' as any, { hello: 'world' }),
         ).rejects.toThrowError(InvalidWsPathError)
+        expect(emitSpy).not.toHaveBeenCalled()
+      })
+    })
+
+    context('with no allowed paths configured', () => {
+      it('permits any path', async () => {
+        const emitSpy = vi.spyOn(activeAdapter(), 'emit').mockResolvedValue()
+        const ws = new Ws([] as const)
+        // with no allowed paths every path is permitted at runtime; call through a
+        // loosened signature since the generic path constraint resolves to `never`.
+        const emit = ws.emit.bind(ws) as (id: number, path: string, data: unknown) => Promise<void>
+
+        await emit(123, '/anything/goes', { hello: 'world' })
+
+        expect(emitSpy).toHaveBeenCalledWith('/', 'user:123', '/anything/goes', { hello: 'world' })
       })
     })
   })
 
   describe('#findSocketIds', () => {
-    let ws: Ws<[]>
-    beforeEach(async () => {
-      const psychicAppWebsockets = PsychicAppWebsockets.getOrFail()
-      const redisClient = psychicAppWebsockets.connection
+    it('delegates to the adapter with the default-prefixed user key', async () => {
+      const socketIdsForSpy = vi.spyOn(activeAdapter(), 'socketIdsFor').mockResolvedValue(['151'])
+      const ws = new Ws([] as const)
 
-      const key = redisWsKey('150', 'user')
-      const otherKey = redisWsKey('160', 'howyadoin')
-
-      await redisClient
-        .multi()
-        .rpush(key, '151')
-        .expireat(key, DateTime.now().plus({ seconds: 15 }).toSeconds())
-        .exec()
-
-      await redisClient
-        .multi()
-        .rpush(otherKey, '161')
-        .expireat(key, DateTime.now().plus({ seconds: 15 }).toSeconds())
-        .exec()
-
-      ws = new Ws([] as const)
-      ws.boot()
-    })
-
-    it('calls to redis to find socket ids', async () => {
-      const redisWsKeySpy = vi.spyOn(RedisWsKeyModule, 'default')
       const socketIds = await ws.findSocketIds('150')
+
       expect(socketIds).toEqual(['151'])
-      expect(redisWsKeySpy).toHaveBeenCalledWith('150', 'user')
+      expect(socketIdsForSpy).toHaveBeenCalledWith('user:150')
     })
 
     context('with a custom redisKeyPrefix', () => {
-      it('uses the custom prefix to generate the redis key', async () => {
-        const redisWsKeySpy = vi.spyOn(RedisWsKeyModule, 'default')
-        ws = new Ws([] as const, { redisKeyPrefix: 'howyadoin' })
-        const socketIds = await ws.findSocketIds('160')
-        expect(socketIds).toEqual(['161'])
-        expect(redisWsKeySpy).toHaveBeenCalledWith('160', 'howyadoin')
-      })
-    })
+      it('uses the custom prefix to build the user key', async () => {
+        const socketIdsForSpy = vi.spyOn(activeAdapter(), 'socketIdsFor').mockResolvedValue(['161'])
+        const ws = new Ws([] as const, { redisKeyPrefix: 'howyadoin' })
 
-    context('for a user with no registered socket ids', () => {
-      it('returns a blank array', async () => {
-        const socketIds = await ws.findSocketIds('123123123')
-        expect(socketIds).toEqual([])
+        await ws.findSocketIds('160')
+
+        expect(socketIdsForSpy).toHaveBeenCalledWith('howyadoin:160')
       })
     })
   })

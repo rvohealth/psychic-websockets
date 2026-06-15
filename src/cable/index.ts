@@ -2,19 +2,16 @@ import { DreamCLI } from '@rvoh/dream/system'
 import { PsychicApp } from '@rvoh/psychic'
 import { PsychicLogos } from '@rvoh/psychic/system'
 import { colorize } from '@rvoh/psychic/utils'
-import { createAdapter } from '@socket.io/redis-adapter'
 import * as fs from 'node:fs'
 import * as http from 'node:http'
 import * as https from 'node:https'
 import * as socketio from 'socket.io'
-import MissingWsRedisConnection from '../error/ws/MissingWsRedisConnection.js'
 import EnvInternal from '../helpers/EnvInternal.js'
-import PsychicAppWebsockets, { RedisOrRedisClusterConnection } from '../psychic-app-websockets/index.js'
+import PsychicAppWebsockets from '../psychic-app-websockets/index.js'
 
 export default class Cable {
   public io: socketio.Server | undefined
   public httpServer: http.Server
-  private redisConnections: RedisOrRedisClusterConnection[] = []
 
   /**
    * @internal
@@ -98,13 +95,14 @@ export default class Cable {
       }
     })
 
-    this.bindToRedis()
+    config.adapter().attachServer(this.io!)
 
     await this.listen({ port })
   }
 
   /**
-   * stops the socket.io server, closing out of all redis connections
+   * stops the socket.io server and tears down the active websockets adapter
+   * (closing redis connections when the redis adapter is in use)
    */
   public async stop() {
     try {
@@ -113,12 +111,10 @@ export default class Cable {
       // noop
     }
 
-    for (const connection of this.redisConnections) {
-      try {
-        connection.disconnect()
-      } catch {
-        // noop
-      }
+    try {
+      await PsychicAppWebsockets.getOrFail().adapter().shutdown()
+    } catch {
+      // noop
     }
   }
 
@@ -137,35 +133,6 @@ export default class Cable {
         accept(true)
       })
     })
-  }
-
-  /**
-   * @internal
-   *
-   * establishes redis pubsub mechanisms
-   */
-  public bindToRedis() {
-    const config = PsychicAppWebsockets.getOrFail()
-    const pubClient = config.connection
-    const subClient = config.subConnection
-
-    if (!pubClient || !subClient) throw new MissingWsRedisConnection()
-
-    this.redisConnections.push(pubClient)
-    this.redisConnections.push(subClient)
-
-    pubClient.on('error', error => {
-      PsychicAppWebsockets.log('PUB CLIENT ERROR', error)
-    })
-    subClient.on('error', error => {
-      PsychicAppWebsockets.log('sub CLIENT ERROR', error)
-    })
-
-    try {
-      this.io!.adapter(createAdapter(pubClient, subClient))
-    } catch (error) {
-      PsychicAppWebsockets.log('FAILED TO ADAPT', error)
-    }
   }
 }
 

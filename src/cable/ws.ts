@@ -1,28 +1,16 @@
-import { DateTime, Dream } from '@rvoh/dream'
-import { uniq } from '@rvoh/dream/utils'
-import { Emitter } from '@socket.io/redis-emitter'
+import { Dream } from '@rvoh/dream'
 import { Socket } from 'socket.io'
 import InvalidWsPathError from '../error/ws/InvalidWsPathError.js'
-import EnvInternal from '../helpers/EnvInternal.js'
 import PsychicAppWebsockets from '../psychic-app-websockets/index.js'
-import redisWsKey from './redisWsKey.js'
 
+/**
+ * Thin facade over the configured websockets adapter. `Ws` validates paths and
+ * builds the namespaced user key, then delegates registry + delivery to whichever
+ * {@link PsychicWebsocketsAdapter} is active for the environment (redis in
+ * production, in-process in test). The public surface — `new Ws(paths)`, `ws.emit`,
+ * `Ws.register`, `ws.findSocketIds` — is unchanged.
+ */
 export default class Ws<AllowedPaths extends readonly string[]> {
-  /**
-   * @internal
-   *
-   * the socket.io redis emitter instance, used to emit
-   * messages through redis to distributed websocket clusters
-   */
-  public io: Emitter
-
-  /**
-   * @internal
-   *
-   * the redis client used to bind socket.io to the redis emitter
-   */
-  private booted = false
-
   /**
    * @internal
    *
@@ -37,10 +25,9 @@ export default class Ws<AllowedPaths extends readonly string[]> {
    * when registering your application's users with psychic-websockets,
    * you need to provide the following:
    *   1. an identifier for your user (i.e. user.id)
-   *   2. a redisKeyPrefix, which is used to prefix your id before storing it in redis
+   *   2. a redisKeyPrefix, which is used to prefix your id before storing it
    *
-   * this enables you to have multiple namespaces in redis to safely store ids,
-   * i.e.
+   * this enables you to have multiple namespaces of ids, i.e.
    *
    *  `user:1`
    *  `admin-user:1`
@@ -55,29 +42,8 @@ export default class Ws<AllowedPaths extends readonly string[]> {
    * @param redisKeyPrefix - (optional) the prefix you wish to use to couple to this id (defaults to 'user')
    */
   public static async register(socket: Socket, id: string | number | Dream, redisKeyPrefix: string = 'user') {
-    const wsApp = PsychicAppWebsockets.getOrFail()
-    const redisClient = wsApp.connection
-    const websocketId = idOrDreamToId(id)
-    const redisKey = redisWsKey(websocketId, redisKeyPrefix)
-
-    const socketIdsToKeep = await redisClient.lrange(redisKey, -2, -1)
-
-    await redisClient
-      .multi()
-      .del(redisKey)
-      .rpush(redisKey, ...socketIdsToKeep, socket.id)
-      .expireat(
-        redisKey,
-        // TODO: make this configurable in non-test environments
-        DateTime.now()
-          .plus(EnvInternal.isTest ? { seconds: 15 } : { day: 1 })
-          .toSeconds(),
-      )
-      .exec()
-
-    socket.on('disconnect', async () => {
-      await redisClient.lrem(redisKey, 1, socket.id)
-    })
+    const adapter = PsychicAppWebsockets.getOrFail().adapter()
+    await adapter.register(wsUserKey(idOrDreamToId(id), redisKeyPrefix), socket)
   }
 
   constructor(
@@ -93,10 +59,9 @@ export default class Ws<AllowedPaths extends readonly string[]> {
        * when registering your application's users with psychic-websockets,
        * you need to provide the following:
        *   1. an identifier for your user (i.e. user.id)
-       *   2. a redisKeyPrefix, which is used to prefix your id before storing it in redis
+       *   2. a redisKeyPrefix, which is used to prefix your id before storing it
        *
-       * this enables you to have multiple namespaces in redis to safely store ids,
-       * i.e.
+       * this enables you to have multiple namespaces of ids, i.e.
        *
        *  `user:1`
        *  `admin-user:1`
@@ -109,20 +74,6 @@ export default class Ws<AllowedPaths extends readonly string[]> {
   ) {
     this.namespace = namespace
     this.redisKeyPrefix = redisKeyPrefix
-  }
-
-  /**
-   * @internal
-   *
-   * establishes a new socket.io-redis emitter
-   */
-  public boot() {
-    if (this.booted) return
-
-    const wsApp = PsychicAppWebsockets.getOrFail()
-
-    this.io = new Emitter(wsApp.connection).of(this.namespace)
-    this.booted = true
   }
 
   /**
@@ -141,37 +92,38 @@ export default class Ws<AllowedPaths extends readonly string[]> {
   ) {
     if (this.allowedPaths.length && !this.allowedPaths.includes(path)) throw new InvalidWsPathError(path)
 
-    this.boot()
-    const socketIds = await this.findSocketIds(idOrDreamToId(id))
-
-    for (const socketId of socketIds) {
-      this.io.to(socketId).emit(path, data)
-    }
+    const adapter = PsychicAppWebsockets.getOrFail().adapter()
+    await adapter.emit(this.namespace, this.userKey(idOrDreamToId(id)), path, data)
   }
 
   /**
    * @internal
    *
-   * used to find a redis key matching the id
+   * used to find the socket ids registered for the provided id
    */
   public async findSocketIds(userId: string): Promise<string[]> {
-    this.boot()
-
-    const wsApp = PsychicAppWebsockets.getOrFail()
-    return uniq(await wsApp.connection.lrange(this.redisKey(userId), 0, -1))
+    const adapter = PsychicAppWebsockets.getOrFail().adapter()
+    return adapter.socketIdsFor(this.userKey(userId))
   }
 
   /**
    * @internal
    *
-   * builds a redis key using the provided identifier and the redisKeyPrefix provided
-   * when this Ws instance was constructed.
+   * builds the namespaced user key from the provided identifier and the
+   * redisKeyPrefix provided when this Ws instance was constructed.
    */
-  private redisKey(userId: string) {
-    return redisWsKey(userId, this.redisKeyPrefix)
+  private userKey(userId: string) {
+    return wsUserKey(userId, this.redisKeyPrefix)
   }
 }
 
 function idOrDreamToId(id: string | number | Dream) {
   return id instanceof Dream ? (id.primaryKeyValue() as string).toString() : (id as string).toString()
+}
+
+/**
+ * the namespaced identity a socket is registered against, e.g. `user:123`.
+ */
+function wsUserKey(userId: string, redisKeyPrefix: string) {
+  return `${redisKeyPrefix}:${userId}`
 }
