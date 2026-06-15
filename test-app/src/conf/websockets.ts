@@ -30,6 +30,14 @@ export default (wsApp: PsychicAppWebsockets) => {
     // socketio server options here
   })
 
+  // the maximum number of sockets registered simultaneously per user. Registering
+  // beyond this cap evicts the user's oldest socket (redis adapter only).
+  wsApp.set('maxConnectionsPerUser', 3)
+
+  // TTL for a user's socket-id registry key — a garbage-collection backstop for
+  // entries left behind by ungraceful disconnects, not the live socket's lifetime.
+  wsApp.set('maxConnectionTtl', { days: 1 })
+
   wsApp.on('ws:start', io => {
     __forTestingOnly('ws:start')
 
