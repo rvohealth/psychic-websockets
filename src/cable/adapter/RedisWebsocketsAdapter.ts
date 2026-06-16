@@ -1,11 +1,9 @@
-import { DateTime } from '@rvoh/dream'
 import { uniq } from '@rvoh/dream/utils'
 import { createAdapter } from '@socket.io/redis-adapter'
 import { Emitter } from '@socket.io/redis-emitter'
 import { Redis } from 'ioredis'
 import { Server as SocketServer, Socket } from 'socket.io'
 import MissingWsRedisConnection from '../../error/ws/MissingWsRedisConnection.js'
-import EnvInternal from '../../helpers/EnvInternal.js'
 import PsychicAppWebsockets, { RedisOrRedisClusterConnection } from '../../psychic-app-websockets/index.js'
 import { PsychicWebsocketsAdapter } from './PsychicWebsocketsAdapter.js'
 
@@ -24,19 +22,22 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
     const connection = this.connection
     const redisKey = this.redisKey(userKey)
 
-    const socketIdsToKeep = await connection.lrange(redisKey, -2, -1)
+    const wsApp = PsychicAppWebsockets.getOrFail()
+    const maxConnections = wsApp.maxConnectionsPerUser
+    const ttlSeconds = wsApp.maxConnectionTtlSeconds
+
+    // keep the most recent (maxConnections - 1) socket ids, then append the new one,
+    // so the user never exceeds the cap and the oldest connection is evicted first.
+    // When the cap is 1 we keep none (a negative-start lrange would otherwise return
+    // every id).
+    const socketIdsToKeep =
+      maxConnections > 1 ? await connection.lrange(redisKey, -(maxConnections - 1), -1) : []
 
     await connection
       .multi()
       .del(redisKey)
       .rpush(redisKey, ...socketIdsToKeep, socket.id)
-      .expireat(
-        redisKey,
-        // TODO: make this configurable in non-test environments
-        DateTime.now()
-          .plus(EnvInternal.isTest ? { seconds: 15 } : { day: 1 })
-          .toSeconds(),
-      )
+      .expire(redisKey, ttlSeconds)
       .exec()
 
     socket.on('disconnect', () => {

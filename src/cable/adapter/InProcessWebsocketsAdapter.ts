@@ -22,7 +22,13 @@ export interface RecordedBroadcast {
  *     would have been delivered; and
  *   - when a socket.io server has been attached (i.e. {@link Cable} actually started,
  *     as in feature specs), it ALSO delivers each broadcast in-process to the live
- *     sockets — giving real end-to-end delivery with no external redis.
+ *     sockets registered on that server — real delivery with no external redis.
+ *
+ * Delivery is single-process: a broadcast reaches a socket only when the emit and the
+ * socket are in the same process (e.g. a `ws:start` connection handler emitting on the
+ * websocket server). It does NOT bridge processes — an emit from a separate web/worker
+ * process won't reach a socket held by the websocket server. That cross-process fan-out
+ * is what the redis adapter provides in production.
  */
 export default class InProcessWebsocketsAdapter implements PsychicWebsocketsAdapter {
   /**

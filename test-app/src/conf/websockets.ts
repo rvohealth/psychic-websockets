@@ -9,8 +9,9 @@ export default (wsApp: PsychicAppWebsockets) => {
 
   // Outside of test, the redis adapter (the default in development/production) needs
   // a connection. In test, the default in-process adapter needs no redis: unit specs
-  // do zero redis I/O and feature specs still get real end-to-end delivery in-process
-  // via the attached socket.io server.
+  // do zero redis I/O, and feature specs get real in-process delivery for broadcasts
+  // emitted within the websocket-server process (e.g. ws:start handlers) via the
+  // attached socket.io server. Cross-process fan-out still needs redis, as in prod.
   if (!AppEnv.isTest) {
     wsApp.set(
       'connection',
@@ -28,6 +29,14 @@ export default (wsApp: PsychicAppWebsockets) => {
   wsApp.set('socketio', {
     // socketio server options here
   })
+
+  // the maximum number of sockets registered simultaneously per user. Registering
+  // beyond this cap evicts the user's oldest socket (redis adapter only).
+  wsApp.set('maxConnectionsPerUser', 3)
+
+  // TTL for a user's socket-id registry key — a garbage-collection backstop for
+  // entries left behind by ungraceful disconnects, not the live socket's lifetime.
+  wsApp.set('maxConnectionTtl', { days: 1 })
 
   wsApp.on('ws:start', io => {
     __forTestingOnly('ws:start')

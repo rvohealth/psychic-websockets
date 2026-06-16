@@ -5,7 +5,23 @@ import { PsychicWebsocketsAdapter } from '../cable/adapter/PsychicWebsocketsAdap
 import resolveWebsocketsAdapter, {
   WebsocketsAdapterSelector,
 } from '../cable/adapter/resolveWebsocketsAdapter.js'
+import durationToSeconds from '../helpers/durationToSeconds.js'
+import { WebsocketConnectionDuration } from '../types/duration.js'
 import { cachePsychicAppWebsockets, getCachedPsychicAppWebsocketsOrFail } from './cache.js'
+
+/**
+ * Default cap on simultaneously-registered sockets per user key, applied by the
+ * redis adapter. Override with `wsApp.set('maxConnectionsPerUser', n)`.
+ */
+export const DEFAULT_MAX_CONNECTIONS_PER_USER = 3
+
+/**
+ * Default time-to-live for a user's socket-id registry key. This is a
+ * garbage-collection backstop for entries left behind by ungraceful disconnects,
+ * not the live socket's lifetime (socket.io owns that via ping settings). Override
+ * with `wsApp.set('maxConnectionTtl', { days: 1 })`.
+ */
+export const DEFAULT_MAX_CONNECTION_TTL: WebsocketConnectionDuration = { days: 1 }
 
 export default class PsychicAppWebsockets {
   public static async init(psychicApp: PsychicApp, cb: (app: PsychicAppWebsockets) => void | Promise<void>) {
@@ -54,6 +70,33 @@ export default class PsychicAppWebsockets {
   private _subConnection: RedisOrRedisClusterConnection
   public get subConnection() {
     return this._subConnection
+  }
+
+  private _maxConnectionsPerUser: number | undefined
+  /**
+   * The maximum number of sockets registered simultaneously per user key. When a
+   * user registers beyond this cap, the redis adapter evicts the oldest socket id.
+   * Defaults to {@link DEFAULT_MAX_CONNECTIONS_PER_USER}.
+   */
+  public get maxConnectionsPerUser(): number {
+    return this._maxConnectionsPerUser ?? DEFAULT_MAX_CONNECTIONS_PER_USER
+  }
+
+  private _maxConnectionTtl: WebsocketConnectionDuration | undefined
+  /**
+   * The configured registry-key TTL as a whole-unit duration. Defaults to
+   * {@link DEFAULT_MAX_CONNECTION_TTL}.
+   */
+  public get maxConnectionTtl(): WebsocketConnectionDuration {
+    return this._maxConnectionTtl ?? DEFAULT_MAX_CONNECTION_TTL
+  }
+
+  /**
+   * The registry-key TTL in seconds, used by the redis adapter when setting the
+   * key's expiry.
+   */
+  public get maxConnectionTtlSeconds(): number {
+    return durationToSeconds(this.maxConnectionTtl)
   }
 
   private _adapterSelector: WebsocketsAdapterSelector | undefined
@@ -121,7 +164,11 @@ export default class PsychicAppWebsockets {
           ? Partial<HealthCheckOptions> | null
           : Opt extends 'adapter'
             ? WebsocketsAdapterSelector
-            : never,
+            : Opt extends 'maxConnectionsPerUser'
+              ? number
+              : Opt extends 'maxConnectionTtl'
+                ? WebsocketConnectionDuration
+                : never,
   ) {
     switch (option) {
       case 'connection':
@@ -152,13 +199,37 @@ export default class PsychicAppWebsockets {
         this._socketioOptions = value as Partial<SocketioServerOptions>
         break
 
+      case 'maxConnectionsPerUser': {
+        const max = value as number
+        if (!Number.isInteger(max) || max < 1)
+          throw new Error(`maxConnectionsPerUser must be an integer >= 1, received: ${JSON.stringify(value)}`)
+        this._maxConnectionsPerUser = max
+        break
+      }
+
+      case 'maxConnectionTtl': {
+        const ttl = value as WebsocketConnectionDuration
+        if (durationToSeconds(ttl) <= 0)
+          throw new Error(
+            `maxConnectionTtl must resolve to a positive number of seconds, received: ${JSON.stringify(value)}`,
+          )
+        this._maxConnectionTtl = ttl
+        break
+      }
+
       default:
         throw new Error(`Unhandled option type passed to PsychicAppWebsockets#set: ${option}`)
     }
   }
 }
 
-export type PsychicAppWebsocketsOption = 'connection' | 'socketio' | 'healthCheck' | 'adapter'
+export type PsychicAppWebsocketsOption =
+  | 'connection'
+  | 'socketio'
+  | 'healthCheck'
+  | 'adapter'
+  | 'maxConnectionsPerUser'
+  | 'maxConnectionTtl'
 
 interface HealthCheckOptions {
   path: string

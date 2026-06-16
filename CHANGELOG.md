@@ -1,8 +1,16 @@
+## 3.3.0
+
+- The two previously-hardcoded connection limits are now configurable on the websockets app:
+  - `wsApp.set('maxConnectionsPerUser', n)` — the maximum number of sockets registered simultaneously per user. Registering beyond this cap evicts the user's oldest socket. Defaults to `3` (the prior hardcoded value). Redis adapter only.
+  - `wsApp.set('maxConnectionTtl', { seconds?, minutes?, hours?, days? })` — the TTL on a user's socket-id registry key, expressed as a whole-unit duration (matching `psychic-workers`' job-delay convention). Defaults to `{ days: 1 }`.
+- `maxConnectionTtl` is a garbage-collection backstop on the registry entry, **not** the live socket's lifetime. It cleans up entries left behind when a socket disconnects ungracefully and the `disconnect` handler never fires. The live socket's liveness is governed by socket.io's ping settings (`socketioOptions`), so set the TTL comfortably above the longest connection you expect — if it expires while a socket is still connected, emits to that user silently stop.
+- No change is required on upgrade: both options default to the prior production values.
+
 ## 3.2.0
 
 - Adds a per-environment websockets transport **adapter seam**, modeled on Rails ActionCable's `cable.yml`. The transport is now selected per environment instead of always using Redis:
   - `RedisWebsocketsAdapter` — the default in `development` and `production`. Unchanged behavior: the socket registry and broadcasts go through Redis (`@socket.io/redis-emitter` + `@socket.io/redis-adapter`).
-  - `InProcessWebsocketsAdapter` — the default in `test`. Keeps the registry in memory, records every broadcast for assertions, and delivers in-process via the attached socket.io server when one exists. Unit specs do **zero Redis I/O**, and feature specs still get real end-to-end delivery with no external Redis.
+  - `InProcessWebsocketsAdapter` — the default in `test`. Keeps the registry in memory, records every broadcast for assertions, and delivers in-process via the attached socket.io server when one exists. Unit specs do **zero Redis I/O**. Feature specs get real in-process delivery for broadcasts emitted **within the websocket-server process** (e.g. `ws:start` handlers), with no external Redis — delivery is single-process, so cross-process fan-out (a web/worker process emitting to a socket held by the websocket server) still requires the Redis adapter, as in production.
 - **The `test` environment now defaults to the in-process adapter.** This removes a class of intermittent spec failures caused by unit specs emitting to Redis for no effect (no sockets are connected). No code change is required on upgrade. If a project relied on real Redis behavior in `test`, opt back in with `wsApp.set('adapter', 'redis')`. Select the adapter explicitly in any environment with `wsApp.set('adapter', 'redis' | 'in_process' | <instance>)` (or pass a custom adapter instance). For fully hermetic specs, also stop opening a Redis connection in `test` (gate `wsApp.set('connection', …)` behind `!AppEnv.isTest`), so no Redis socket is created at init.
 - New `@rvoh/psychic-websockets/testing` entrypoint: `websocketBroadcasts(path?)`, `assertBroadcast(path, { to?, prefix?, data? })`, and `clearBroadcasts()` for asserting on the broadcasts recorded by the in-process adapter.
 - Public API is unchanged: `new Ws(paths)`, `ws.emit`, `Ws.register`, and `wsApp.set('connection', …)` behave as before; production with a connection and no explicit adapter resolves to the Redis adapter, identical to prior releases.

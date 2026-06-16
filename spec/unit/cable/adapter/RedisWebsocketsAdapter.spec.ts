@@ -16,6 +16,10 @@ describe('RedisWebsocketsAdapter', () => {
     const wsApp = PsychicAppWebsockets.getOrFail()
     wsApp.set('connection', new Redis({ maxRetriesPerRequest: null }))
     wsApp.set('adapter', 'redis')
+    // normalize the configurable limits to known values for each test. The short TTL
+    // keeps real redis keys from lingering between runs (the library default is 1 day).
+    wsApp.set('maxConnectionsPerUser', 3)
+    wsApp.set('maxConnectionTtl', { seconds: 15 })
     adapter = wsApp.adapter() as RedisWebsocketsAdapter
 
     const connection = wsApp.connection
@@ -40,8 +44,8 @@ describe('RedisWebsocketsAdapter', () => {
       expect(await adapter.socketIdsFor('user:otheruserid')).toEqual(['101'])
     })
 
-    context('with more than 3 register calls for the same user', () => {
-      it('restricts to 3 socket ids per user key', async () => {
+    context('with more than the default cap of register calls for the same user', () => {
+      it('restricts to 3 socket ids per user key, evicting the oldest', async () => {
         await adapter.register('user:123', fakeSocket('456'))
         await adapter.register('user:123', fakeSocket('789'))
         await adapter.register('user:123', fakeSocket('345'))
@@ -49,6 +53,39 @@ describe('RedisWebsocketsAdapter', () => {
 
         expect(sort(await adapter.socketIdsFor('user:123'))).toEqual(['234', '345', '789'])
       })
+    })
+
+    context('with a custom maxConnectionsPerUser', () => {
+      it('restricts to the configured cap, evicting the oldest', async () => {
+        PsychicAppWebsockets.getOrFail().set('maxConnectionsPerUser', 2)
+
+        await adapter.register('user:123', fakeSocket('456'))
+        await adapter.register('user:123', fakeSocket('789'))
+        await adapter.register('user:123', fakeSocket('345'))
+
+        expect(sort(await adapter.socketIdsFor('user:123'))).toEqual(['345', '789'])
+      })
+    })
+
+    context('with maxConnectionsPerUser set to 1', () => {
+      it('keeps only the most recently registered socket id', async () => {
+        PsychicAppWebsockets.getOrFail().set('maxConnectionsPerUser', 1)
+
+        await adapter.register('user:123', fakeSocket('456'))
+        await adapter.register('user:123', fakeSocket('789'))
+
+        expect(await adapter.socketIdsFor('user:123')).toEqual(['789'])
+      })
+    })
+
+    it('sets the registry key TTL from maxConnectionTtl', async () => {
+      PsychicAppWebsockets.getOrFail().set('maxConnectionTtl', { seconds: 120 })
+
+      await adapter.register('user:123', fakeSocket('456'))
+
+      const ttl = await PsychicAppWebsockets.getOrFail().connection.ttl('user:123:socket_ids')
+      expect(ttl).toBeGreaterThan(110)
+      expect(ttl).toBeLessThanOrEqual(120)
     })
 
     it('binds disconnect cleanup to the socket', async () => {
