@@ -1,3 +1,7 @@
+## 3.4.0
+
+- switch to Github action publishing to npmjs.com
+
 ## 3.3.0
 
 - The two previously-hardcoded connection limits are now configurable on the websockets app:
