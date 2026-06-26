@@ -3,7 +3,8 @@
 # the primary defense against Shai-Hulud-class npm worms. Only packages listed
 # below (= true) may run install/build scripts. Keep this MINIMAL — every entry
 # re-opens script execution for that package, so add one only with clear cause.
+strictDepBuilds: false
 allowBuilds:
-  esbuild: true
-  msgpackr-extract: true
-  puppeteer: true
+  esbuild: false
+  msgpackr-extract: false
+  puppeteer: false
