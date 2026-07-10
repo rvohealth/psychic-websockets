@@ -117,16 +117,18 @@ export default class Cable {
    * (closing redis connections when the redis adapter is in use)
    */
   public async stop() {
+    // teardown is best-effort — a failing step must not prevent the next one —
+    // but failures are logged so shutdown problems don't go dark.
     try {
       await this.io?.close()
-    } catch {
-      // noop
+    } catch (error) {
+      PsychicAppWebsockets.logWithLevel('warn', 'error closing socket.io server during stop', error)
     }
 
     try {
       await PsychicAppWebsockets.getOrFail().adapter().shutdown()
-    } catch {
-      // noop
+    } catch (error) {
+      PsychicAppWebsockets.logWithLevel('warn', 'error shutting down websockets adapter during stop', error)
     }
   }
 
