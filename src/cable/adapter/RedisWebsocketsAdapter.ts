@@ -79,12 +79,12 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
     this.redisConnections.push(subClient)
 
     pubClient.on('error', (error: unknown) => {
-      PsychicAppWebsockets.log('PUB CLIENT ERROR', error)
+      PsychicAppWebsockets.logWithLevel('error', 'websockets redis pub client error', error)
     })
     // subConnection is `Redis | Cluster`; both expose `.on('error', …)`, but the
     // union's listener overloads aren't directly callable, so narrow to Redis.
     ;(subClient as Redis).on('error', (error: unknown) => {
-      PsychicAppWebsockets.log('sub CLIENT ERROR', error)
+      PsychicAppWebsockets.logWithLevel('error', 'websockets redis sub client error', error)
     })
 
     // let a failure to attach the redis adapter propagate and abort startup: were it

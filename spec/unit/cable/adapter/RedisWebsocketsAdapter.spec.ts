@@ -174,6 +174,24 @@ describe('RedisWebsocketsAdapter', () => {
       })
     })
 
+    context("when the pub/sub redis clients emit 'error'", () => {
+      it('logs at error level', () => {
+        const wsApp = PsychicAppWebsockets.getOrFail()
+        const logWithLevelSpy = vi.spyOn(PsychicAppWebsockets, 'logWithLevel').mockReturnValue(undefined)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        adapter.attachServer({ adapter: vi.fn() } as any)
+
+        const pubError = new Error('pub connection lost')
+        const subError = new Error('sub connection lost')
+        wsApp.connection.emit('error', pubError)
+        ;(wsApp.subConnection as Redis).emit('error', subError)
+
+        expect(logWithLevelSpy).toHaveBeenCalledWith('error', expect.any(String), pubError)
+        expect(logWithLevelSpy).toHaveBeenCalledWith('error', expect.any(String), subError)
+      })
+    })
+
     context('when attaching the redis adapter to the socket.io server fails', () => {
       it('rethrows so startup aborts rather than silently serving on the in-memory adapter', () => {
         const error = new Error('failed to attach redis adapter')
