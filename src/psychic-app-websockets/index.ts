@@ -56,7 +56,6 @@ export default class PsychicAppWebsockets {
   public static logWithLevel(...args: Parameters<typeof PsychicApp.logWithLevel>) {
     const psychicWebsocketsApp = this.getOrFail()
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return (psychicWebsocketsApp.psychicApp.constructor as typeof PsychicApp).logWithLevel(...args)
   }
 
