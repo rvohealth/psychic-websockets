@@ -41,7 +41,16 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
       .exec()
 
     socket.on('disconnect', () => {
-      void connection.lrem(redisKey, 1, socket.id)
+      // best-effort cleanup: the registry key's TTL is the backstop for entries this
+      // misses. Uncaught, this rejection floats on every graceful shutdown
+      // ("Connection is closed.") and becomes an unhandledRejection.
+      connection.lrem(redisKey, 1, socket.id).catch((error: unknown) => {
+        PsychicAppWebsockets.logWithLevel(
+          'warn',
+          'failed to deregister socket id on disconnect (the registry key TTL will clean it up)',
+          error,
+        )
+      })
     })
   }
 

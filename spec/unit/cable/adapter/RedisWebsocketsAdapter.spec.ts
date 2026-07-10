@@ -96,6 +96,27 @@ describe('RedisWebsocketsAdapter', () => {
       // only assert the cleanup handler was bound.
       expect(onSpy).toHaveBeenCalledWith('disconnect', expect.any(Function))
     })
+
+    context('when disconnect cleanup fails', () => {
+      it('logs at warn instead of floating an unhandled rejection', async () => {
+        let disconnectHandler: (() => void) | undefined
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const socket = fakeSocket('456', (event: string, handler: () => void) => {
+          if (event === 'disconnect') disconnectHandler = handler
+        })
+        await adapter.register('user:123', socket)
+
+        // every graceful shutdown rejects cleanup this way ("Connection is closed.")
+        const error = new Error('Connection is closed.')
+        vi.spyOn(PsychicAppWebsockets.getOrFail().connection, 'lrem').mockRejectedValue(error)
+        const logWithLevelSpy = vi.spyOn(PsychicAppWebsockets, 'logWithLevel').mockReturnValue(undefined)
+
+        disconnectHandler!()
+        await new Promise(resolve => setImmediate(resolve))
+
+        expect(logWithLevelSpy).toHaveBeenCalledWith('warn', expect.any(String), error)
+      })
+    })
   })
 
   describe('#socketIdsFor', () => {
