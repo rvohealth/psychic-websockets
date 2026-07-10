@@ -53,6 +53,13 @@ export default class PsychicAppWebsockets {
     return (psychicWebsocketsApp.psychicApp.constructor as typeof PsychicApp).log(...args)
   }
 
+  public static logWithLevel(...args: Parameters<typeof PsychicApp.logWithLevel>) {
+    const psychicWebsocketsApp = this.getOrFail()
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    return (psychicWebsocketsApp.psychicApp.constructor as typeof PsychicApp).logWithLevel(...args)
+  }
+
   constructor(psychicApp: PsychicApp) {
     this.psychicApp = psychicApp
   }

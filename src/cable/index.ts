@@ -90,8 +90,20 @@ export default class Cable {
     }
 
     this.io!.on('connect', async socket => {
-      for (const hook of config.hooks.wsConnect) {
-        await hook(socket)
+      // contain ws:connect hook failures to the connecting socket: without this,
+      // one throwing hook (e.g. a db/redis blip during auth) is an unhandled
+      // rejection that crashes the entire websocket process.
+      try {
+        for (const hook of config.hooks.wsConnect) {
+          await hook(socket)
+        }
+      } catch (error) {
+        PsychicAppWebsockets.logWithLevel(
+          'error',
+          'error running ws:connect hooks; disconnecting socket',
+          error,
+        )
+        socket.disconnect(true)
       }
     })
 
