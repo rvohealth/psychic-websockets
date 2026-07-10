@@ -152,5 +152,19 @@ describe('RedisWebsocketsAdapter', () => {
         expect(() => adapter.attachServer({} as any)).toThrowError(MissingWsRedisConnection)
       })
     })
+
+    context('when attaching the redis adapter to the socket.io server fails', () => {
+      it('rethrows so startup aborts rather than silently serving on the in-memory adapter', () => {
+        const error = new Error('failed to attach redis adapter')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const io: any = {
+          adapter: () => {
+            throw error
+          },
+        }
+
+        expect(() => adapter.attachServer(io)).toThrowError(error)
+      })
+    })
   })
 })

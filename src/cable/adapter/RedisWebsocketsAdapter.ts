@@ -78,11 +78,10 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
       PsychicAppWebsockets.log('sub CLIENT ERROR', error)
     })
 
-    try {
-      io.adapter(createAdapter(pubClient, subClient))
-    } catch (error) {
-      PsychicAppWebsockets.log('FAILED TO ADAPT', error)
-    }
+    // let a failure to attach the redis adapter propagate and abort startup: were it
+    // swallowed, the server would keep serving on socket.io's default in-memory
+    // adapter, silently dropping every cross-process emit.
+    io.adapter(createAdapter(pubClient, subClient))
   }
 
   public async shutdown(): Promise<void> {
