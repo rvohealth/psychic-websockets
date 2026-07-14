@@ -19,7 +19,10 @@ export default async (psy: PsychicApp) => {
       username: AppEnv.string('WS_REDIS_USERNAME', { optional: true }),
       password: AppEnv.string('WS_REDIS_PASSWORD', { optional: true }),
       tls: AppEnv.isProduction ? {} : undefined,
-      maxRetriesPerRequest: null,
+      // Bounded, not null: the socket.io redis-adapter issues no blocking
+      // commands, so an unreachable Redis must fail fast rather than hang.
+      maxRetriesPerRequest: 3,
+      commandTimeout: 10000,
     })
   })
 }
