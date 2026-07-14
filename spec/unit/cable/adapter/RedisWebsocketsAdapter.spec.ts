@@ -96,6 +96,27 @@ describe('RedisWebsocketsAdapter', () => {
       // only assert the cleanup handler was bound.
       expect(onSpy).toHaveBeenCalledWith('disconnect', expect.any(Function))
     })
+
+    context('when disconnect cleanup fails', () => {
+      it('logs at warn instead of floating an unhandled rejection', async () => {
+        let disconnectHandler: (() => void) | undefined
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const socket = fakeSocket('456', (event: string, handler: () => void) => {
+          if (event === 'disconnect') disconnectHandler = handler
+        })
+        await adapter.register('user:123', socket)
+
+        // every graceful shutdown rejects cleanup this way ("Connection is closed.")
+        const error = new Error('Connection is closed.')
+        vi.spyOn(PsychicAppWebsockets.getOrFail().connection, 'lrem').mockRejectedValue(error)
+        const logWithLevelSpy = vi.spyOn(PsychicAppWebsockets, 'logWithLevel').mockReturnValue(undefined)
+
+        disconnectHandler!()
+        await new Promise(resolve => setImmediate(resolve))
+
+        expect(logWithLevelSpy).toHaveBeenCalledWith('warn', expect.any(String), error)
+      })
+    })
   })
 
   describe('#socketIdsFor', () => {
@@ -150,6 +171,38 @@ describe('RedisWebsocketsAdapter', () => {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect(() => adapter.attachServer({} as any)).toThrowError(MissingWsRedisConnection)
+      })
+    })
+
+    context("when the pub/sub redis clients emit 'error'", () => {
+      it('logs at error level', () => {
+        const wsApp = PsychicAppWebsockets.getOrFail()
+        const logWithLevelSpy = vi.spyOn(PsychicAppWebsockets, 'logWithLevel').mockReturnValue(undefined)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        adapter.attachServer({ adapter: vi.fn() } as any)
+
+        const pubError = new Error('pub connection lost')
+        const subError = new Error('sub connection lost')
+        wsApp.connection.emit('error', pubError)
+        ;(wsApp.subConnection as Redis).emit('error', subError)
+
+        expect(logWithLevelSpy).toHaveBeenCalledWith('error', expect.any(String), pubError)
+        expect(logWithLevelSpy).toHaveBeenCalledWith('error', expect.any(String), subError)
+      })
+    })
+
+    context('when attaching the redis adapter to the socket.io server fails', () => {
+      it('rethrows so startup aborts rather than silently serving on the in-memory adapter', () => {
+        const error = new Error('failed to attach redis adapter')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const io: any = {
+          adapter: () => {
+            throw error
+          },
+        }
+
+        expect(() => adapter.attachServer(io)).toThrowError(error)
       })
     })
   })

@@ -1,3 +1,14 @@
+## 3.4.0
+
+Error-observability fixes for the websocket server process:
+
+- A throwing `ws:connect` hook no longer crashes the entire websocket process as an unhandled rejection. The error is contained to the connecting socket: it is logged at error level and that socket is disconnected; the process stays up.
+- **RedisWebsocketsAdapter: a failure to attach the redis adapter to the socket.io server now aborts startup instead of being caught and info-logged.** Previously the server kept serving on socket.io's default in-memory adapter, silently dropping every cross-process emit. If you `await cable.start(...)` (or use the scaffold's `ws.ts`), the error now propagates to your start call.
+- The redis adapter's disconnect-cleanup `lrem` is no longer a floating promise. It rejected on every graceful shutdown ("Connection is closed.") as an unhandledRejection; the failure is now caught and logged at warn (cleanup stays best-effort — the registry key's TTL is the backstop).
+- The redis pub/sub clients' `'error'` events are now logged at error level instead of info.
+- `Cable#stop` teardown failures (`io.close()`, adapter shutdown) are now logged at warn instead of silently swallowed. Teardown remains best-effort: a failing step does not prevent the next one.
+- New: `PsychicAppWebsockets.logWithLevel(level, ...args)`, mirroring `PsychicAppWebsockets.log` but with an explicit log level.
+
 ## 3.3.2
 
 - upgrade to pnpm@11.9.0; add strictDepBuilds: false and deny esbuild/msgpackr-extract/puppeteer build scripts in pnpm-workspace.yaml

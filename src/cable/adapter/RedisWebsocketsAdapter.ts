@@ -41,7 +41,16 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
       .exec()
 
     socket.on('disconnect', () => {
-      void connection.lrem(redisKey, 1, socket.id)
+      // best-effort cleanup: the registry key's TTL is the backstop for entries this
+      // misses. Uncaught, this rejection floats on every graceful shutdown
+      // ("Connection is closed.") and becomes an unhandledRejection.
+      connection.lrem(redisKey, 1, socket.id).catch((error: unknown) => {
+        PsychicAppWebsockets.logWithLevel(
+          'warn',
+          'failed to deregister socket id on disconnect (the registry key TTL will clean it up)',
+          error,
+        )
+      })
     })
   }
 
@@ -70,19 +79,18 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
     this.redisConnections.push(subClient)
 
     pubClient.on('error', (error: unknown) => {
-      PsychicAppWebsockets.log('PUB CLIENT ERROR', error)
+      PsychicAppWebsockets.logWithLevel('error', 'websockets redis pub client error', error)
     })
     // subConnection is `Redis | Cluster`; both expose `.on('error', …)`, but the
     // union's listener overloads aren't directly callable, so narrow to Redis.
     ;(subClient as Redis).on('error', (error: unknown) => {
-      PsychicAppWebsockets.log('sub CLIENT ERROR', error)
+      PsychicAppWebsockets.logWithLevel('error', 'websockets redis sub client error', error)
     })
 
-    try {
-      io.adapter(createAdapter(pubClient, subClient))
-    } catch (error) {
-      PsychicAppWebsockets.log('FAILED TO ADAPT', error)
-    }
+    // let a failure to attach the redis adapter propagate and abort startup: were it
+    // swallowed, the server would keep serving on socket.io's default in-memory
+    // adapter, silently dropping every cross-process emit.
+    io.adapter(createAdapter(pubClient, subClient))
   }
 
   public async shutdown(): Promise<void> {
