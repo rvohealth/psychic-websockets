@@ -8,3 +8,7 @@ export type { RecordedBroadcast } from './cable/adapter/InProcessWebsocketsAdapt
 export type { PsychicWebsocketsAdapter } from './cable/adapter/PsychicWebsocketsAdapter.js'
 export type { WebsocketsAdapterSelector } from './cable/adapter/resolveWebsocketsAdapter.js'
 export type { WebsocketConnectionDuration } from './types/duration.js'
+export type {
+  PsychicWebsocketsErrorContext,
+  PsychicWebsocketsErrorHook,
+} from './psychic-app-websockets/index.js'

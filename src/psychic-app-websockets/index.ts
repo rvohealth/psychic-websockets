@@ -121,6 +121,7 @@ export default class PsychicAppWebsockets {
   private _hooks: PsychicAppWebsocketsHooks = {
     wsStart: [],
     wsConnect: [],
+    wsError: [],
   }
   public get hooks() {
     return this._hooks
@@ -144,7 +145,9 @@ export default class PsychicAppWebsockets {
       ? (server: SocketServer) => void | Promise<void>
       : T extends 'ws:connect'
         ? (socket: Socket) => void | Promise<void>
-        : never,
+        : T extends 'ws:error'
+          ? PsychicWebsocketsErrorHook
+          : never,
   ) {
     switch (hookEventType) {
       case 'ws:start':
@@ -153,6 +156,10 @@ export default class PsychicAppWebsockets {
 
       case 'ws:connect':
         this._hooks.wsConnect.push(cb as (socket: Socket) => void | Promise<void>)
+        break
+
+      case 'ws:error':
+        this._hooks.wsError.push(cb as PsychicWebsocketsErrorHook)
         break
 
       default:
@@ -243,11 +250,50 @@ interface HealthCheckOptions {
   body: string | null
 }
 
-export type PsychicWebsocketsHookEventType = 'ws:start' | 'ws:connect'
+export type PsychicWebsocketsHookEventType = 'ws:start' | 'ws:connect' | 'ws:error'
+
+/**
+ * The context passed as the second, positional argument to a `ws:error` hook.
+ * Discriminated by `phase` so a single observer can branch on which
+ * framework-contained failure class fired.
+ *
+ * The context is intentionally minimal and privacy-preserving: it never carries
+ * a raw socket, handshake credentials, request headers, request body, or the raw
+ * request url (whose query string can carry tokens/PII). `ws:error` is the
+ * idiomatic point to forward a framework-contained websocket failure to an
+ * external monitoring service (e.g. Sentry), so only scrubbed, external-safe
+ * fields are exposed.
+ *
+ * - `phase: 'ws:connect'` — a `ws:connect` hook threw while a socket was
+ *   connecting. `socketId` is that socket's id. Correlation caveat: after the
+ *   failure the socket is disconnected and socket.io removes it from its map, so
+ *   an app can only map `socketId` → user if it recorded that mapping BEFORE the
+ *   failure; the hook does not resolve it post-disconnect.
+ * - `phase: 'ws:health-check'` — an error was thrown while the websocket server's
+ *   own http request handler answered a request (Psychic's health check +
+ *   catch-all 404 only; it does NOT cover engine.io/socket.io internals or
+ *   app-provided request listeners). `path` is the request url with the query
+ *   string stripped (pathname only); `method` is the request method. Both are
+ *   typed optional because `IncomingMessage.url`/`.method` are `string | undefined`.
+ */
+export type PsychicWebsocketsErrorContext =
+  | { phase: 'ws:connect'; socketId: string }
+  | { phase: 'ws:health-check'; method?: string; path?: string }
+
+/**
+ * A `ws:error` observer. Positional `(error, context)` signature, matching the
+ * existing `ws:start(server)` / `ws:connect(socket)` hooks. `error` is typed
+ * `unknown` — it is the original thrown value, forwarded as-is.
+ */
+export type PsychicWebsocketsErrorHook = (
+  error: unknown,
+  context: PsychicWebsocketsErrorContext,
+) => void | Promise<void>
 
 export interface PsychicAppWebsocketsHooks {
   wsStart: ((server: SocketServer) => void | Promise<void>)[]
   wsConnect: ((socket: Socket) => void | Promise<void>)[]
+  wsError: PsychicWebsocketsErrorHook[]
 }
 
 export type RedisOrRedisClusterConnection = Redis | Cluster
