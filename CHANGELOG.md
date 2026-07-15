@@ -1,3 +1,7 @@
+## 3.4.1
+
+- **Fix: a socket.io long-polling request no longer crashes the websocket process.** `Cable#connect` attached the health-check http `'request'` listener *after* creating the socket.io server. socket.io/engine.io's `attach()` snapshots the server's existing `'request'` listeners and installs a single delegating listener that only forwards non-socket.io requests to that snapshot, so a listener registered afterward fired independently for every request — including socket.io's own polling requests, which engine.io had already answered. The health-check listener then called `res.writeHead()` on the already-sent response and threw `Cannot write headers after they are sent to the client`; on this raw http path that surfaced as an `uncaughtException` and (in apps that exit on uncaught exceptions) crash-looped the ws task. The health check is now registered *before* socket.io attaches, so engine.io owns request delegation and never runs the health check for its own requests. A defensive `res.headersSent`/`res.writableEnded` guard on the health-check handler is added as a second layer (covers app-provided http servers that carry their own listeners). No API or config change is required on upgrade. This makes the previously client-only mitigation ("connect with `transports: ['websocket']`") unnecessary for process safety; websocket-only transport is still recommended for connection latency.
+
 ## 3.4.0
 
 Error-observability fixes for the websocket server process:

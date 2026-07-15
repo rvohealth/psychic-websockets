@@ -24,14 +24,27 @@ export default class Cable {
     if (this.io) return
     this.httpServer = httpServer ?? this.buildHttpServer()
 
+    // Register the health-check 'request' listener BEFORE handing the server to
+    // socket.io. socket.io/engine.io's `attach()` snapshots the http server's
+    // existing 'request' listeners, removes them, and installs a single
+    // delegating listener that calls that snapshot ONLY for non-socket.io
+    // requests. A 'request' listener added *after* attach (as this one used to
+    // be) is not part of the snapshot, so it fires independently for every
+    // request — including socket.io's own long-polling requests, which
+    // engine.io has already answered and ended. The late listener then falls
+    // through to its 404 branch and calls res.writeHead() on the already-sent
+    // response, throwing "Cannot write headers after they are sent to the
+    // client". On this raw http path that throw is an uncaughtException that
+    // crashes the websocket process. Registering first makes engine.io own the
+    // delegation, so the health check never runs for socket.io requests.
+    this.attachHealthCheckRoute()
+
     const config = PsychicAppWebsockets.getOrFail()
     this.io = new socketio.Server(this.httpServer, {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
       cors: config.psychicApp.corsOptions as any,
       ...config.socketioOptions,
     })
-
-    this.attachHealthCheckRoute()
   }
 
   private buildHttpServer() {
@@ -51,6 +64,14 @@ export default class Cable {
 
   private attachHealthCheckRoute() {
     this.httpServer.on('request', (req, res) => {
+      // Defense in depth: if another 'request' listener has already answered
+      // (socket.io/engine.io for its own polling requests, or a listener on an
+      // app-provided http server), leave the response alone. Writing headers a
+      // second time throws "Cannot write headers after they are sent to the
+      // client", and on this raw http path that throw is an uncaughtException
+      // that takes down the websocket process.
+      if (res.headersSent || res.writableEnded) return
+
       const opts = PsychicAppWebsockets.getOrFail().healthCheckOptions
       if (opts === null) {
         res.writeHead(404)
