@@ -8,3 +8,5 @@ allowBuilds:
   esbuild: false
   msgpackr-extract: false
   puppeteer: false
+minimumReleaseAgeExclude:
+  - bullmq@6.2.0
