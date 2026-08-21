@@ -58,7 +58,7 @@
     "socket.io-adapter": "*"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
+    "@eslint/js": "^10.0.1",
     "@koa/cors": "^5.0.0",
     "@koa/etag": "^5.0.2",
     "@koa/router": "^15.4.0",
@@ -77,9 +77,9 @@
     "@types/node": "^22.19.1",
     "@types/pg": "^8",
     "@types/supertest": "^6.0.3",
-    "@typescript-eslint/parser": "^8.48.1",
+    "@typescript-eslint/parser": "^8.67.0",
     "bullmq": "^5.63.2",
-    "eslint": "^9.39.1",
+    "eslint": "^10.0.1",
     "ioredis": "^5.4.1",
     "koa": "^3.1.2",
     "koa-bodyparser": "^4.4.1",
@@ -99,7 +99,7 @@
     "tsx": "^4.19.3",
     "typedoc": "^0.26.11",
     "typescript": "^5.8.2",
-    "typescript-eslint": "^8.48.1",
+    "typescript-eslint": "^8.67.0",
     "vitest": "^4.1.0"
   },
   "dependencies": {
