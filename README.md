@@ -100,12 +100,7 @@ point). Observe them by attaching your own listener to the public `connection` /
 `subConnection` getters, immediately after `wsApp.set('connection', ...)`:
 
 ```ts
-wsApp.set(
-  'connection',
-  new Redis({
-    /* ... */
-  }),
-)
+wsApp.set('connection', new Redis({/* ... */}))
 
 // The subConnection duplicate only exists after set('connection'), so attach here.
 wsApp.connection.on('error', error => {
