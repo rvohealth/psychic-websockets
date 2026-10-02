@@ -237,12 +237,7 @@ export default class PsychicAppWebsockets {
 }
 
 export type PsychicAppWebsocketsOption =
-  | 'connection'
-  | 'socketio'
-  | 'healthCheck'
-  | 'adapter'
-  | 'maxConnectionsPerUser'
-  | 'maxConnectionTtl'
+  'connection' | 'socketio' | 'healthCheck' | 'adapter' | 'maxConnectionsPerUser' | 'maxConnectionTtl'
 
 interface HealthCheckOptions {
   path: string
@@ -277,8 +272,7 @@ export type PsychicWebsocketsHookEventType = 'ws:start' | 'ws:connect' | 'ws:err
  *   typed optional because `IncomingMessage.url`/`.method` are `string | undefined`.
  */
 export type PsychicWebsocketsErrorContext =
-  | { phase: 'ws:connect'; socketId: string }
-  | { phase: 'ws:health-check'; method?: string; path?: string }
+  { phase: 'ws:connect'; socketId: string } | { phase: 'ws:health-check'; method?: string; path?: string }
 
 /**
  * A `ws:error` observer. Positional `(error, context)` signature, matching the
