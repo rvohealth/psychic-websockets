@@ -3,6 +3,7 @@ import InProcessWebsocketsAdapter from '../../../src/cable/adapter/InProcessWebs
 import Cable from '../../../src/cable/index.js'
 import Ws from '../../../src/cable/ws.js'
 import PsychicAppWebsockets from '../../../src/psychic-app-websockets/index.js'
+import isolateReferenceWebsocketHooks from './helpers/isolateReferenceWebsocketHooks.js'
 
 // End-to-end proof that the in-process adapter (the default in test) delivers real
 // websocket broadcasts over a real socket.io connection with NO redis involved —
@@ -13,14 +14,13 @@ describe('in-process websocket delivery (end-to-end, no redis)', () => {
   let client: ClientSocket | undefined
 
   beforeEach(() => {
+    isolateReferenceWebsocketHooks()
     const wsApp = PsychicAppWebsockets.getOrFail()
-    wsApp.on('ws:start', server => {
-      server.of('/').on('connection', async socket => {
-        const userId = socket.handshake.auth.userId as string
-        await Ws.register(socket, userId)
-        const ws = new Ws(['/ops/connection-success'] as const)
-        await ws.emit(userId, '/ops/connection-success', { message: 'connected' })
-      })
+    wsApp.on('ws:connect', async socket => {
+      const userId = socket.handshake.auth.userId as string
+      await Ws.register(socket, userId)
+      const ws = new Ws(['/ops/connection-success'] as const)
+      await ws.emit(userId, '/ops/connection-success', { message: 'connected' })
     })
 
     cable = new Cable()

@@ -1,3 +1,21 @@
+## Unreleased
+
+- The reference app authenticates, registers and sends connection success through
+  the contained `ws:connect` hook. `ws:start` remains startup-only in the app and
+  real-delivery fixture; the raw Socket.IO Server API remains available. No public
+  API or framework runtime behavior changes, and application auth policy remains
+  application-owned.
+- Missing/malformed credentials and missing users in the reference app now
+  disconnect quietly without registration/success. Unexpected lookup, adapter,
+  delivery and missing/invalid-length encryption-key failures retain framework
+  logging, disconnect and `ws:error` observation. Connection checks around awaits
+  prevent registration after pending lookup and success after pending registration
+  for disconnected reference sockets; adapter registry races are unchanged.
+- Documentation distinguishes post-connection/default-namespace hooks from the
+  handshake and raw listener containment. Regression specs observe terminal
+  invalid-client rejection before valid-client delivery on the same server;
+  routing-only and fake-socket fixtures explicitly isolate reference auth.
+
 ## 3.5.1
 
 Dependency refresh; tested against the current framework. No runtime/API change to the published package.

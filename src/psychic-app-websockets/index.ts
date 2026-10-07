@@ -139,6 +139,22 @@ export default class PsychicAppWebsockets {
     return this._healthCheckOptions
   }
 
+  /**
+   * Registers a websocket lifecycle or error callback.
+   *
+   * `ws:start(server)` runs during startup and exposes the raw Socket.IO Server.
+   * `ws:connect(socket)` runs per socket after connection on the default namespace
+   * (`/`), not before the handshake. Use it for asynchronous app authentication,
+   * registration and success delivery; transport connection alone is not proof
+   * of authenticated application delivery.
+   *
+   * A thrown/rejected `ws:connect` callback is logged, disconnects that socket,
+   * stops subsequent connect callbacks and notifies `ws:error`. An expected auth
+   * rejection may instead disconnect and return quietly; later callbacks still
+   * run, so guard dependent work and check connection state after awaits. Raw
+   * connection listeners installed by `ws:start` are outside this containment
+   * and error observation. Startup failures propagate to the caller of start.
+   */
   public on<T extends PsychicWebsocketsHookEventType>(
     hookEventType: T,
     cb: T extends 'ws:start'
