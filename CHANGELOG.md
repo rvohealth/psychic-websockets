@@ -1,3 +1,7 @@
+## 3.5.3
+
+- Document per-socket authentication through the `ws:connect` hook. The README and the `PsychicAppWebsockets#on` TSDoc explain that `ws:start` is for startup work and exposes the raw Socket.IO Server, while `ws:connect` runs per socket after connection on the default namespace (not before the handshake) and is the place for asynchronous authentication, registration and success delivery. They also cover quiet disconnect-and-return for expected rejections, checking connection state after awaits, and that raw `connection` listeners installed in `ws:start` are outside `ws:connect` error containment and `ws:error` observation.
+
 ## 3.5.2
 
 - Fix `PsychicAppWebsockets.connection` declaration typing for ioredis 5 consumers. The getter now preserves the bare `Redis` type instead of emitting ioredis 6's default generic argument. Runtime behavior and peer ranges are unchanged.

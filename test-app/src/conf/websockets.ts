@@ -1,8 +1,7 @@
-import { Encrypt } from '@rvoh/dream/utils'
 import { Redis } from 'ioredis'
 import { PsychicAppWebsockets, Ws } from '../../../src/index.js'
-import User from '../app/models/User.js'
 import AppEnv from './AppEnv.js'
+import resolveReferenceSocketUser from './websocketAuth/resolveReferenceSocketUser.js'
 
 export default (wsApp: PsychicAppWebsockets) => {
   if (AppEnv.serviceRole !== 'ws' && !AppEnv.isTest) return
@@ -10,7 +9,7 @@ export default (wsApp: PsychicAppWebsockets) => {
   // Outside of test, the redis adapter (the default in development/production) needs
   // a connection. In test, the default in-process adapter needs no redis: unit specs
   // do zero redis I/O, and feature specs get real in-process delivery for broadcasts
-  // emitted within the websocket-server process (e.g. ws:start handlers) via the
+  // emitted within the websocket-server process (e.g. ws:connect hooks) via the
   // attached socket.io server. Cross-process fan-out still needs redis, as in prod.
   if (!AppEnv.isTest) {
     wsApp.set(
@@ -38,30 +37,28 @@ export default (wsApp: PsychicAppWebsockets) => {
   // entries left behind by ungraceful disconnects, not the live socket's lifetime.
   wsApp.set('maxConnectionTtl', { days: 1 })
 
-  wsApp.on('ws:start', io => {
+  wsApp.on('ws:start', () => {
     __forTestingOnly('ws:start')
-
-    io.of('/').on('connection', async socket => {
-      const token = socket.handshake.auth.token as string
-      const userId = Encrypt.decrypt<string>(token, {
-        algorithm: 'aes-256-gcm',
-        key: process.env.APP_ENCRYPTION_KEY!,
-      })!
-      const user = await User.find(userId)
-
-      if (user) {
-        await Ws.register(socket, user.id)
-
-        const ws = new Ws(['/ops/connection-success'] as const)
-        await ws.emit(user.id, '/ops/connection-success', {
-          message: 'Successfully connected to psychic websockets',
-        })
-      }
-    })
   })
 
-  wsApp.on('ws:connect', () => {
+  wsApp.on('ws:connect', async socket => {
     __forTestingOnly('ws:connect')
+    if (!socket.connected) return
+
+    const user = await resolveReferenceSocketUser(socket)
+    if (!user) {
+      socket.disconnect(true)
+      return
+    }
+    if (!socket.connected) return
+
+    await Ws.register(socket, user.id)
+    if (!socket.connected) return
+
+    const ws = new Ws(['/ops/connection-success'] as const)
+    await ws.emit(user.id, '/ops/connection-success', {
+      message: 'Successfully connected to psychic websockets',
+    })
   })
 }
 
