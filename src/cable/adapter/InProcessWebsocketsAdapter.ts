@@ -25,7 +25,7 @@ export interface RecordedBroadcast {
  *     sockets registered on that server — real delivery with no external redis.
  *
  * Delivery is single-process: a broadcast reaches a socket only when the emit and the
- * socket are in the same process (e.g. a `ws:start` connection handler emitting on the
+ * socket are in the same process (e.g. a `ws:connect` hook emitting on the
  * websocket server). It does NOT bridge processes — an emit from a separate web/worker
  * process won't reach a socket held by the websocket server. That cross-process fan-out
  * is what the redis adapter provides in production.

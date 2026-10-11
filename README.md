@@ -25,6 +25,57 @@ socket's liveness is governed by socket.io's ping settings (`socketioOptions`), 
 set the TTL comfortably above the longest connection you expect — if it expires
 while a socket is still connected, emits to that user silently stop.
 
+## Per-socket authentication
+
+Use `ws:start(server)` for startup work and `ws:connect(socket)` for each client's
+asynchronous authentication, registration and delivery. `ws:connect` runs **after**
+Socket.IO connects on the default namespace (`/`); it does not reject the handshake.
+A client can observe transport `connect` before the app authenticates it. Wait for
+an application success event to know authentication and registration completed;
+a rejected client observes a server disconnect, not `connect_error`.
+
+```ts
+wsApp.on('ws:start', server => {
+  // Startup work; the raw Socket.IO Server API remains available here.
+})
+
+wsApp.on('ws:connect', async socket => {
+  if (!socket.connected) return
+  const user = await resolveWebsocketUser(socket) // your application's auth policy
+  if (!user) {
+    socket.disconnect(true)
+    return
+  }
+  if (!socket.connected) return
+
+  await Ws.register(socket, user.id)
+  if (!socket.connected) return
+
+  const ws = new Ws(['/ops/connection-success'] as const)
+  await ws.emit(user.id, '/ops/connection-success', { message: 'Connected' })
+})
+```
+
+The reference app rejects missing/malformed tokens and missing users quietly,
+without registration or authenticated success. Its
+[auth resolver](test-app/src/conf/websocketAuth/resolveReferenceSocketUser.ts)
+validates the encryption key separately before catching the specific expected
+decryption error. Missing/invalid-length keys and unexpected lookup, registration
+or delivery failures throw: the framework logs them, disconnects that socket and
+notifies `ws:error`. A same-length wrong key cannot be distinguished from tampered
+credentials by decryption alone.
+
+Quiet disconnect-and-return continues later `ws:connect` callbacks. Keep dependent
+authentication, registration and success work together, and guard any later
+callbacks against disconnected or unauthenticated sockets. Check connection state
+after awaited lookup and registration to prevent late registration/success in your
+app; this does not change adapter registry cleanup or resolve Redis registry races.
+
+Framework containment applies to `ws:connect` callbacks. A raw
+`server.on('connection', async socket => ...)` listener installed by `ws:start` is
+outside that containment and `ws:error` observation. The library supplies hooks;
+each application chooses its authentication policy.
+
 ## Error observability
 
 ### The `ws:error` hook
