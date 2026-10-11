@@ -1,4 +1,6 @@
-## Unreleased
+## 3.5.2
+
+Reference-app and documentation change; no runtime/API change to the published package. The updated TSDoc on `PsychicAppWebsockets#on` and `InProcessWebsocketsAdapter` ships in the published type declarations.
 
 - The reference app authenticates, registers and sends connection success through
   the contained `ws:connect` hook. `ws:start` remains startup-only in the app and
