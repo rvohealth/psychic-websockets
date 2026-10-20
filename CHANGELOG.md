@@ -1,3 +1,7 @@
+## Unreleased
+
+- Fix `PsychicAppWebsockets.connection` declaration typing for ioredis 5 consumers. The getter now preserves the bare `Redis` type instead of emitting ioredis 6's default generic argument. Runtime behavior and peer ranges are unchanged.
+
 ## 3.5.1
 
 Dependency refresh; tested against the current framework. No runtime/API change to the published package.
