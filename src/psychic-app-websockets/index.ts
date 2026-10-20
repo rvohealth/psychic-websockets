@@ -69,7 +69,8 @@ export default class PsychicAppWebsockets {
   }
 
   private _connection: Redis
-  public get connection() {
+  // Keep declarations compatible with ioredis 5, whose Redis class is not generic.
+  public get connection(): Redis {
     return this._connection
   }
 
