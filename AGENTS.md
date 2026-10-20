@@ -1,5 +1,19 @@
 # Agent instructions for psychic-websockets
 
+## Releases and changelog
+
+Every change affecting applications using this package requires an appropriate
+semantic version bump in `package.json` and a matching numbered entry in
+`CHANGELOG.md` in the same PR. This includes fixes to published TypeScript
+declarations and dependency or runtime compatibility, even when runtime
+behavior is unchanged.
+
+`CHANGELOG.md` must never contain an `Unreleased` section. Write only changes
+that affect package consumers, under the version that releases them. Never add
+internal-only changes such as tests, test-app changes, CI, tooling, development
+dependency updates, or agent instructions to the changelog. Internal-only
+changes do not require a release or version bump.
+
 ## Public Error Exports
 
 Export an error only when a developer of a Psychic application needs to throw
@@ -45,7 +59,7 @@ pnpm fspec
 
 Confirm `pnpm why @rvoh/psychic` shows the version you intend to support. A green run against an old lockfile proves nothing.
 
-Record intentionally held-back versions and compatibility limits in `CHANGELOG.md` (and TSDoc where relevant).
+Record consumer-facing compatibility limits and intentionally held-back published dependencies in the numbered release entry in `CHANGELOG.md` (and TSDoc where relevant). Record internal development dependency constraints in the PR description, never in the changelog.
 
 ## Local request notes
 
