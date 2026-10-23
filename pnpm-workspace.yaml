@@ -9,7 +9,16 @@ allowBuilds:
   msgpackr-extract: false
   puppeteer: false
 
+# SECURITY — release-age cooldown: 3 days, in minutes. Freshly published
+# versions are not installed until they are this old (the window in which most
+# worm-injected releases are caught and unpublished). Kept under the CVE-patch
+# SLA so routine patching needs no bypass. pnpm 11+ reads this only from
+# pnpm-workspace.yaml (it ignores it in .npmrc); client/pnpm-workspace.yaml
+# repeats it because client/ is a separate project that does not inherit it.
+minimumReleaseAge: 4320
+
 # We maintain the @rvoh packages, so a fresh publish of one of them is not an
-# upstream supply-chain risk to wait out.
+# upstream supply-chain risk to wait out. Keep this list @rvoh/* only; CI
+# (check-cooldown-excludes) rejects any other entry.
 minimumReleaseAgeExclude:
   - '@rvoh/*'

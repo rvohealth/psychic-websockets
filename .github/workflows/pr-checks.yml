@@ -24,18 +24,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: minimumReleaseAgeExclude must be @rvoh/* only
+      - name: Cooldown is set in pnpm-workspace.yaml; minimumReleaseAgeExclude is @rvoh/* only
         run: |
           # SECURITY: the minimumReleaseAge cooldown bypass list must stay @rvoh/*
           # only (our own packages). Any third-party entry is a permanent
           # supply-chain bypass and must be rejected — apply urgent patches via a
           # transient, reverted override instead of a persistent exclude.
-          bad=$(grep -nE '^[[:space:]]*minimumReleaseAgeExclude' .npmrc | grep -vE '=[[:space:]]*@rvoh/' || true)
-          if [ -n "$bad" ]; then
-            echo "::error::Non-@rvoh minimumReleaseAgeExclude entries (cooldown bypass must stay @rvoh/* only):"
-            echo "$bad"
-            exit 1
+          #
+          # pnpm 11+ reads minimumReleaseAge/minimumReleaseAgeExclude only from
+          # pnpm-workspace.yaml (block or inline list form) and silently ignores
+          # them in .npmrc. client/ is a separate pnpm project with its own
+          # pnpm-workspace.yaml, so both files are checked.
+          status=0
+          for f in pnpm-workspace.yaml client/pnpm-workspace.yaml; do
+            if ! grep -qE '^minimumReleaseAge:[[:space:]]*[1-9][0-9]*[[:space:]]*(#.*)?$' "$f"; then
+              echo "::error::$f must set a positive top-level minimumReleaseAge"
+              status=1
+            fi
+            bad=$(awk -v file="$f" '
+              function emit(line, text) { gsub("[^[:alnum:]@/._*-]", "", text); if (text != "") print file ":" line ": " text }
+              /^minimumReleaseAgeExclude:/ {
+                inblock = 1
+                rest = $0; sub(/^[^:]*:[[:space:]]*/, "", rest)
+                if (rest != "") { n = split(rest, parts, ","); for (i = 1; i <= n; i++) emit(NR, parts[i]) }
+                next
+              }
+              inblock && /^[^[:space:]#]/ { inblock = 0 }
+              inblock && /^[[:space:]]*-/ { text = $0; sub(/^[[:space:]]*-[[:space:]]*/, "", text); emit(NR, text) }
+            ' "$f" | grep -vE ':[0-9]+: @rvoh/' || true)
+            if [ -n "$bad" ]; then
+              echo "::error::Non-@rvoh minimumReleaseAgeExclude entries (cooldown bypass must stay @rvoh/* only):"
+              echo "$bad"
+              status=1
+            fi
+          done
+          if grep -nE '^[[:space:]]*minimumReleaseAge' .npmrc; then
+            echo "::error::.npmrc release-age settings are ignored by pnpm 11+; set them in pnpm-workspace.yaml"
+            status=1
           fi
+          exit $status
 
   uspec:
     name: Unit tests (Node ${{ matrix.node-version }})
