@@ -1,8 +1,8 @@
 import InProcessWebsocketsAdapter from '../../../../src/cable/adapter/InProcessWebsocketsAdapter.js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fakeSocket(id: string, on: (...args: any[]) => void = vi.fn()): any {
-  return { id, on }
+function fakeSocket(id: string, on: (...args: any[]) => void = vi.fn(), disconnected = false): any {
+  return { id, on, disconnected }
 }
 
 // a minimal stand-in for the socket.io server: io.of(namespace).to(socketId).emit(path, data)
@@ -49,6 +49,17 @@ describe('InProcessWebsocketsAdapter', () => {
       disconnect()
 
       expect(await adapter.socketIdsFor('user:123')).toEqual([])
+    })
+
+    context('when the socket is already disconnected', () => {
+      it('does not register it or bind a disconnect handler', async () => {
+        const on = vi.fn()
+
+        await adapter.register('user:123', fakeSocket('456', on, true))
+
+        expect(await adapter.socketIdsFor('user:123')).toEqual([])
+        expect(on).not.toHaveBeenCalled()
+      })
     })
 
     context('for an unknown user key', () => {

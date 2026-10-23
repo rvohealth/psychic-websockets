@@ -41,6 +41,11 @@ export default class InProcessWebsocketsAdapter implements PsychicWebsocketsAdap
   private io: SocketServer | undefined
 
   public register(userKey: string, socket: Socket): Promise<void> {
+    // socket.io emits 'disconnect' once and does not replay it to listeners added
+    // later, so registering an already-disconnected socket would leave its id
+    // behind until shutdown.
+    if (socket.disconnected) return Promise.resolve()
+
     let socketIds = this.registry.get(userKey)
     if (!socketIds) {
       socketIds = new Set<string>()

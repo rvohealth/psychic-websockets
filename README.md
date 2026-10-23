@@ -69,7 +69,8 @@ Quiet disconnect-and-return continues later `ws:connect` callbacks. Keep depende
 authentication, registration and success work together, and guard any later
 callbacks against disconnected or unauthenticated sockets. Check connection state
 after awaited lookup and registration to prevent late registration/success in your
-app; this does not change adapter registry cleanup or resolve Redis registry races.
+app. Registry cleanup does not depend on these checks: `Ws.register` skips a socket
+that is already disconnected and removes one that disconnects while it registers.
 
 Framework containment applies to `ws:connect` callbacks. A raw
 `server.on('connection', async socket => ...)` listener installed by `ws:start` is

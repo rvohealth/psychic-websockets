@@ -5,8 +5,23 @@ import MissingWsRedisConnection from '../../../../src/error/ws/MissingWsRedisCon
 import PsychicAppWebsockets from '../../../../src/psychic-app-websockets/index.js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fakeSocket(id: string, on: (...args: any[]) => void = vi.fn()): any {
-  return { id, on }
+function fakeSocket(id: string, on: (...args: any[]) => void = vi.fn(), disconnected = false): any {
+  return { id, on, disconnected }
+}
+
+// a fake socket that captures its 'disconnect' handler so a spec can fire it
+function disconnectableSocket(id: string) {
+  let disconnect: (() => void) | undefined
+  const socket = fakeSocket(id, (event: string, handler: () => void) => {
+    if (event === 'disconnect') disconnect = handler
+  })
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  return { socket, disconnect: () => disconnect!() }
+}
+
+// lets queued ioredis replies and the floating cleanup promise settle
+async function flushRedis() {
+  await PsychicAppWebsockets.getOrFail().connection.ping()
 }
 
 describe('RedisWebsocketsAdapter', () => {
@@ -75,6 +90,139 @@ describe('RedisWebsocketsAdapter', () => {
         await adapter.register('user:123', fakeSocket('789'))
 
         expect(await adapter.socketIdsFor('user:123')).toEqual(['789'])
+      })
+    })
+
+    it('does not duplicate a re-registered socket id', async () => {
+      await adapter.register('user:123', fakeSocket('456'))
+      await adapter.register('user:123', fakeSocket('789'))
+      await adapter.register('user:123', fakeSocket('456'))
+
+      // read the raw list: socketIdsFor's uniq would hide a duplicate
+      const raw = await PsychicAppWebsockets.getOrFail().connection.lrange('user:123:socket_ids', 0, -1)
+      expect(raw).toEqual(['789', '456'])
+    })
+
+    context('with concurrent register calls for the same user', () => {
+      it('keeps every socket id', async () => {
+        await Promise.all([
+          adapter.register('user:123', fakeSocket('456')),
+          adapter.register('user:123', fakeSocket('789')),
+          adapter.register('user:123', fakeSocket('345')),
+        ])
+
+        expect(sort(await adapter.socketIdsFor('user:123'))).toEqual(['345', '456', '789'])
+      })
+
+      it('keeps every socket id when the calls go through separate redis connections', async () => {
+        // a second adapter on its own redis connection stands in for a second
+        // websocket process
+        const secondConnection = new Redis({ maxRetriesPerRequest: null })
+        const secondAdapter = new RedisWebsocketsAdapter()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        vi.spyOn(secondAdapter as any, 'connection', 'get').mockReturnValue(secondConnection)
+
+        // one pair can win the race by timing alone, so race many users at once
+        const userKeys = Array.from({ length: 25 }, (_, i) => `user:race${i}`)
+        const connection = PsychicAppWebsockets.getOrFail().connection
+
+        try {
+          // both connections must be live, or ioredis queues one side's commands
+          // until it connects and the calls no longer overlap
+          await Promise.all([connection.ping(), secondConnection.ping()])
+
+          await Promise.all(
+            userKeys.flatMap(userKey => [
+              adapter.register(userKey, fakeSocket('456')),
+              secondAdapter.register(userKey, fakeSocket('789')),
+            ]),
+          )
+
+          const registered = await Promise.all(userKeys.map(async userKey => adapter.socketIdsFor(userKey)))
+          expect(registered.map(socketIds => sort(socketIds))).toEqual(userKeys.map(() => ['456', '789']))
+        } finally {
+          await connection.del(...userKeys.map(userKey => `${userKey}:socket_ids`))
+          secondConnection.disconnect()
+        }
+      })
+
+      it('evicts only the oldest socket ids beyond the cap', async () => {
+        PsychicAppWebsockets.getOrFail().set('maxConnectionsPerUser', 2)
+        await adapter.register('user:123', fakeSocket('old1'))
+
+        await Promise.all([
+          adapter.register('user:123', fakeSocket('456')),
+          adapter.register('user:123', fakeSocket('789')),
+        ])
+
+        expect(sort(await adapter.socketIdsFor('user:123'))).toEqual(['456', '789'])
+      })
+    })
+
+    context('when a disconnect cleanup lands while another register is in flight', () => {
+      it('does not restore the disconnected socket id', async () => {
+        const a = disconnectableSocket('456')
+        await adapter.register('user:123', a.socket)
+
+        const registeringB = adapter.register('user:123', fakeSocket('789'))
+        a.disconnect()
+        await registeringB
+        await flushRedis()
+
+        expect(await adapter.socketIdsFor('user:123')).toEqual(['789'])
+      })
+    })
+
+    context('when the socket disconnects while register is in flight', () => {
+      it('removes its socket id once the write completes', async () => {
+        const onSpy = vi.fn()
+        const socket = fakeSocket('456', onSpy)
+
+        const registering = adapter.register('user:123', socket)
+        // socket.io flips this and emits 'disconnect' once, before register could listen
+        socket.disconnected = true
+        await registering
+        await flushRedis()
+
+        expect(await adapter.socketIdsFor('user:123')).toEqual([])
+        expect(onSpy).not.toHaveBeenCalled()
+      })
+
+      it('logs at warn if that cleanup fails', async () => {
+        const socket = fakeSocket('456')
+        const error = new Error('Connection is closed.')
+        vi.spyOn(PsychicAppWebsockets.getOrFail().connection, 'lrem').mockRejectedValue(error)
+        const logWithLevelSpy = vi.spyOn(PsychicAppWebsockets, 'logWithLevel').mockReturnValue(undefined)
+
+        const registering = adapter.register('user:123', socket)
+        socket.disconnected = true
+        await registering
+        await new Promise(resolve => setImmediate(resolve))
+
+        expect(logWithLevelSpy).toHaveBeenCalledWith('warn', expect.any(String), error)
+      })
+    })
+
+    context('when the socket is already disconnected', () => {
+      it('does not register it or bind a disconnect handler', async () => {
+        const onSpy = vi.fn()
+
+        await adapter.register('user:123', fakeSocket('456', onSpy, true))
+
+        expect(await adapter.socketIdsFor('user:123')).toEqual([])
+        expect(onSpy).not.toHaveBeenCalled()
+      })
+
+      context('with maxConnectionsPerUser set to 1', () => {
+        it('leaves the live socket id registered', async () => {
+          PsychicAppWebsockets.getOrFail().set('maxConnectionsPerUser', 1)
+          await adapter.register('user:123', fakeSocket('456'))
+
+          await adapter.register('user:123', fakeSocket('789', vi.fn(), true))
+          await flushRedis()
+
+          expect(await adapter.socketIdsFor('user:123')).toEqual(['456'])
+        })
       })
     })
 
