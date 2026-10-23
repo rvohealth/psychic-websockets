@@ -8,3 +8,8 @@ allowBuilds:
   esbuild: false
   msgpackr-extract: false
   puppeteer: false
+
+# We maintain the @rvoh packages, so a fresh publish of one of them is not an
+# upstream supply-chain risk to wait out.
+minimumReleaseAgeExclude:
+  - '@rvoh/*'
