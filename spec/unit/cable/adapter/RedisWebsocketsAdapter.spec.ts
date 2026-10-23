@@ -1,12 +1,26 @@
 import { sort } from '@rvoh/dream/utils'
 import { Redis } from 'ioredis'
+import { Server as SocketServer } from 'socket.io'
+import { io as ioClient, Socket as ClientSocket } from 'socket.io-client'
 import RedisWebsocketsAdapter from '../../../../src/cable/adapter/RedisWebsocketsAdapter.js'
 import MissingWsRedisConnection from '../../../../src/error/ws/MissingWsRedisConnection.js'
 import PsychicAppWebsockets from '../../../../src/psychic-app-websockets/index.js'
 
+// a stand-in for a socket.io 4.8 socket that has finished connecting (or, with
+// `disconnected`, one that has since disconnected): socket.io only holds a socket
+// in its namespace's pre-connect map while io.use middleware runs
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fakeSocket(id: string, on: (...args: any[]) => void = vi.fn(), disconnected = false): any {
-  return { id, on, disconnected }
+  return { id, on, disconnected, conn: { readyState: 'open' }, nsp: { _preConnectSockets: new Map() } }
+}
+
+// a stand-in for a socket.io 4.8 socket still running io.use middleware: not yet
+// connected, its transport open, and held in the namespace's pre-connect map
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function preConnectSocket(id: string, on: (...args: any[]) => void = vi.fn()): any {
+  const socket = fakeSocket(id, on, true)
+  socket.nsp._preConnectSockets.set(id, socket)
+  return socket
 }
 
 // a fake socket that captures its 'disconnect' handler so a spec can fire it
@@ -223,6 +237,98 @@ describe('RedisWebsocketsAdapter', () => {
 
           expect(await adapter.socketIdsFor('user:123')).toEqual(['456'])
         })
+      })
+    })
+
+    context('when the socket has not finished connecting (io.use middleware)', () => {
+      it('registers it and binds a disconnect handler', async () => {
+        const onSpy = vi.fn()
+
+        await adapter.register('user:123', preConnectSocket('456', onSpy))
+        await flushRedis()
+
+        expect(await adapter.socketIdsFor('user:123')).toEqual(['456'])
+        expect(onSpy).toHaveBeenCalledWith('disconnect', expect.any(Function))
+      })
+
+      context('when its transport closes while register is in flight', () => {
+        it('removes its socket id once the write completes', async () => {
+          const onSpy = vi.fn()
+          const socket = preConnectSocket('456', onSpy)
+
+          const registering = adapter.register('user:123', socket)
+          // socket.io drops a socket whose transport closed during middleware without
+          // ever emitting 'disconnect' for it
+          socket.conn.readyState = 'closed'
+          await registering
+          await flushRedis()
+
+          expect(await adapter.socketIdsFor('user:123')).toEqual([])
+          expect(onSpy).not.toHaveBeenCalled()
+        })
+      })
+
+      context('when its transport has already closed', () => {
+        it('does not register it or bind a disconnect handler', async () => {
+          const onSpy = vi.fn()
+          const socket = preConnectSocket('456', onSpy)
+          socket.conn.readyState = 'closed'
+
+          await adapter.register('user:123', socket)
+
+          expect(await adapter.socketIdsFor('user:123')).toEqual([])
+          expect(onSpy).not.toHaveBeenCalled()
+        })
+      })
+
+      context('on a socket.io release without a pre-connect map', () => {
+        it('registers it and binds a disconnect handler', async () => {
+          const onSpy = vi.fn()
+          const socket = fakeSocket('456', onSpy, true)
+          socket.nsp = {}
+
+          await adapter.register('user:123', socket)
+
+          expect(await adapter.socketIdsFor('user:123')).toEqual(['456'])
+          expect(onSpy).toHaveBeenCalledWith('disconnect', expect.any(Function))
+        })
+      })
+    })
+
+    context('with a real socket.io server registering from io.use middleware', () => {
+      const port = 9974
+      let io: SocketServer
+      let client: ClientSocket | undefined
+
+      afterEach(async () => {
+        client?.disconnect()
+        client = undefined
+        await io.close()
+      })
+
+      it('keeps the socket registered once connected and removes it on disconnect', async () => {
+        io = new SocketServer(port)
+        io.use((socket, next) => {
+          adapter.register('user:123', socket).then(() => next(), next)
+        })
+        const serverSocketId = new Promise<string>(resolve =>
+          io.on('connection', socket => resolve(socket.id)),
+        )
+        const serverDisconnect = new Promise<void>(resolve =>
+          io.on('connection', socket => socket.on('disconnect', () => resolve())),
+        )
+
+        client = ioClient(`http://localhost:${port}`, { transports: ['websocket'] })
+
+        const socketId = await serverSocketId
+        await flushRedis()
+        expect(await adapter.socketIdsFor('user:123')).toEqual([socketId])
+
+        client.disconnect()
+        await serverDisconnect
+        await flushRedis()
+
+        expect(await adapter.socketIdsFor('user:123')).toEqual([])
       })
     })
 
