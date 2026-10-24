@@ -24,18 +24,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: minimumReleaseAgeExclude must be @rvoh/* only
+      - name: Cooldown is set in pnpm-workspace.yaml; minimumReleaseAgeExclude is @rvoh/* only
         run: |
           # SECURITY: the minimumReleaseAge cooldown bypass list must stay @rvoh/*
           # only (our own packages). Any third-party entry is a permanent
           # supply-chain bypass and must be rejected — apply urgent patches via a
           # transient, reverted override instead of a persistent exclude.
-          bad=$(grep -nE '^[[:space:]]*minimumReleaseAgeExclude' .npmrc | grep -vE '=[[:space:]]*@rvoh/' || true)
-          if [ -n "$bad" ]; then
-            echo "::error::Non-@rvoh minimumReleaseAgeExclude entries (cooldown bypass must stay @rvoh/* only):"
-            echo "$bad"
-            exit 1
+          #
+          # pnpm 11+ reads minimumReleaseAge/minimumReleaseAgeExclude only from
+          # pnpm-workspace.yaml and silently ignores them in .npmrc. client/ is a
+          # separate pnpm project with its own pnpm-workspace.yaml, so both files
+          # are checked. Each file is parsed as YAML with yq (preinstalled on
+          # GitHub's ubuntu runner images) rather than matched by key spelling, so
+          # quoted keys, flow mappings, aliases and merge keys are read the way
+          # pnpm reads them. A parse error or an unexpected shape fails the check.
+          command -v yq >/dev/null || { echo "::error::yq is required for this check"; exit 1; }
+          yqs() { yq --yaml-fix-merge-anchor-to-spec "explode(.) | $1" "$2"; }
+          status=0
+          for f in pnpm-workspace.yaml client/pnpm-workspace.yaml; do
+            if ! age_ok=$(yqs '.minimumReleaseAge |
+                if tag == "!!int" then (. > 0)
+                elif tag == "!!str" then test("^[1-9][0-9]*$")
+                else false end' "$f") ||
+               ! bad=$(yqs '.minimumReleaseAgeExclude | select(tag != "!!null") |
+                if tag == "!!seq" then (.[] | select(tag != "!!str" or (test("^@rvoh/[^\s,]+$") | not)) | to_json(0))
+                else "minimumReleaseAgeExclude must be a list, not " + tag end' "$f"); then
+              echo "::error::$f could not be parsed and checked"
+              status=1
+              continue
+            fi
+            if [ "$age_ok" != "true" ]; then
+              echo "::error::$f must set a positive top-level minimumReleaseAge"
+              status=1
+            fi
+            if [ -n "$bad" ]; then
+              echo "::error::$f has non-@rvoh minimumReleaseAgeExclude entries (cooldown bypass must stay @rvoh/* only):"
+              echo "$bad"
+              status=1
+            fi
+          done
+          if grep -inE '^[[:space:]]*minimum-?release-?age' .npmrc; then
+            echo "::error::.npmrc release-age settings are ignored by pnpm 11+; set them in pnpm-workspace.yaml"
+            status=1
           fi
+          exit $status
 
   uspec:
     name: Unit tests (Node ${{ matrix.node-version }})

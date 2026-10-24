@@ -25,7 +25,7 @@ export interface RecordedBroadcast {
  *     sockets registered on that server — real delivery with no external redis.
  *
  * Delivery is single-process: a broadcast reaches a socket only when the emit and the
- * socket are in the same process (e.g. a `ws:start` connection handler emitting on the
+ * socket are in the same process (e.g. a `ws:connect` hook emitting on the
  * websocket server). It does NOT bridge processes — an emit from a separate web/worker
  * process won't reach a socket held by the websocket server. That cross-process fan-out
  * is what the redis adapter provides in production.
@@ -41,6 +41,12 @@ export default class InProcessWebsocketsAdapter implements PsychicWebsocketsAdap
   private io: SocketServer | undefined
 
   public register(userKey: string, socket: Socket): Promise<void> {
+    // socket.io emits 'disconnect' once and does not replay it to listeners added
+    // later, so registering a socket that has already closed would leave its id
+    // behind until shutdown. A socket still in io.use middleware is registered: it
+    // emits 'disconnect' once connected.
+    if (this.hasClosed(socket)) return Promise.resolve()
+
     let socketIds = this.registry.get(userKey)
     if (!socketIds) {
       socketIds = new Set<string>()
@@ -87,5 +93,25 @@ export default class InProcessWebsocketsAdapter implements PsychicWebsocketsAdap
    */
   public clearBroadcasts(): void {
     this.broadcasts = []
+  }
+
+  /**
+   * @internal
+   *
+   * whether socket.io is finished with this socket, so it will never emit
+   * 'disconnect' to a listener bound now. `socket.disconnected` alone is not enough:
+   * it is also true for a socket still running `io.use` middleware, which connects
+   * afterward. A socket whose transport is no longer open will never connect. On
+   * socket.io 4.8+, a socket that is neither connected nor held in its namespace's
+   * pre-connect map has already disconnected. Earlier releases have no such map,
+   * so there a not-yet-connected socket on an open transport counts as connecting.
+   */
+  private hasClosed(socket: Socket): boolean {
+    if (!socket.disconnected) return false
+    if (socket.conn.readyState !== 'open') return true
+
+    // a private socket.io 4.8+ field, read defensively
+    const preConnectSockets = (socket.nsp as unknown as { _preConnectSockets?: unknown })._preConnectSockets
+    return preConnectSockets instanceof Map && !preConnectSockets.has(socket.id)
   }
 }

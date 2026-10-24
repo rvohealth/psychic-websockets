@@ -1,2 +1,9 @@
+# client/ is its own pnpm project (own package.json and lockfile), so it does
+# not inherit the root pnpm-workspace.yaml settings. This settings-only file
+# (no `packages:` key) keeps the lockfile here and applies install policy.
 allowBuilds:
   esbuild: true
+
+# SECURITY — release-age cooldown: 3 days, in minutes, matching the root.
+# pnpm 11+ reads this only from pnpm-workspace.yaml.
+minimumReleaseAge: 4320
