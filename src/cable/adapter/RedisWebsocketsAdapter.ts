@@ -4,6 +4,7 @@ import { Emitter } from '@socket.io/redis-emitter'
 import { Redis } from 'ioredis'
 import { Server as SocketServer, Socket } from 'socket.io'
 import MissingWsRedisConnection from '../../error/ws/MissingWsRedisConnection.js'
+import socketHasClosed from '../../helpers/socketHasClosed.js'
 import PsychicAppWebsockets, { RedisOrRedisClusterConnection } from '../../psychic-app-websockets/index.js'
 import { PsychicWebsocketsAdapter } from './PsychicWebsocketsAdapter.js'
 
@@ -23,7 +24,7 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
     // later, so a socket that has already closed would leave its id behind until
     // the key's TTL (and, at the cap, evict a live socket's id first). A socket
     // still in io.use middleware is registered: it emits 'disconnect' once connected.
-    if (this.hasClosed(socket)) return
+    if (socketHasClosed(socket)) return
 
     const connection = this.connection
     const redisKey = this.redisKey(userKey)
@@ -49,7 +50,7 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
     // check and bind in the same tick as the write resolving, so a socket that
     // closed while the write was in flight is cleaned up here and any later
     // disconnect reaches the listener.
-    if (this.hasClosed(socket)) {
+    if (socketHasClosed(socket)) {
       this.deregister(connection, redisKey, socket.id)
       return
     }
@@ -157,26 +158,6 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
         error,
       )
     })
-  }
-
-  /**
-   * @internal
-   *
-   * whether socket.io is finished with this socket, so it will never emit
-   * 'disconnect' to a listener bound now. `socket.disconnected` alone is not enough:
-   * it is also true for a socket still running `io.use` middleware, which connects
-   * afterward. A socket whose transport is no longer open will never connect. On
-   * socket.io 4.8+, a socket that is neither connected nor held in its namespace's
-   * pre-connect map has already disconnected. Earlier releases have no such map,
-   * so there a not-yet-connected socket on an open transport counts as connecting.
-   */
-  private hasClosed(socket: Socket): boolean {
-    if (!socket.disconnected) return false
-    if (socket.conn.readyState !== 'open') return true
-
-    // a private socket.io 4.8+ field, read defensively
-    const preConnectSockets = (socket.nsp as unknown as { _preConnectSockets?: unknown })._preConnectSockets
-    return preConnectSockets instanceof Map && !preConnectSockets.has(socket.id)
   }
 
   /**
