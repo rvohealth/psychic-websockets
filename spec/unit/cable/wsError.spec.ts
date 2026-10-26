@@ -3,8 +3,8 @@ import Cable from '../../../src/cable/index.js'
 import PsychicAppWebsockets from '../../../src/psychic-app-websockets/index.js'
 import isolateReferenceWebsocketHooks from './helpers/isolateReferenceWebsocketHooks.js'
 
-function fakeSocket() {
-  return { id: 'socket-abc', disconnect: vi.fn() }
+function fakeSocket(): Socket {
+  return { id: 'socket-abc', disconnect: vi.fn() } as unknown as Socket
 }
 
 describe('cable ws:error hook — ws:connect phase', () => {
@@ -48,7 +48,7 @@ describe('cable ws:error hook — ws:connect phase', () => {
       const connectHandler = await startAndCaptureConnectHandler()
       const socket = fakeSocket()
 
-      await connectHandler(socket as unknown as Socket)
+      await connectHandler(socket)
 
       expect(observer).toHaveBeenCalledTimes(1)
       expect(observer).toHaveBeenCalledWith(error, { phase: 'ws:connect', socketId: 'socket-abc' })
@@ -64,7 +64,7 @@ describe('cable ws:error hook — ws:connect phase', () => {
       const connectHandler = await startAndCaptureConnectHandler()
       const socket = fakeSocket()
 
-      await connectHandler(socket as unknown as Socket)
+      await connectHandler(socket)
 
       expect(observer).not.toHaveBeenCalled()
       expect(socket.disconnect).not.toHaveBeenCalled()
@@ -88,7 +88,7 @@ describe('cable ws:error hook — ws:connect phase', () => {
         throw new Error('disconnect blew up')
       })
 
-      await expect(connectHandler(socket as unknown as Socket)).resolves.not.toThrow()
+      await expect(connectHandler(socket)).resolves.not.toThrow()
 
       expect(observer).toHaveBeenCalledTimes(1)
       expect(observer).toHaveBeenCalledWith(error, { phase: 'ws:connect', socketId: 'socket-abc' })
@@ -114,7 +114,7 @@ describe('cable ws:error hook — ws:connect phase', () => {
       const connectHandler = await startAndCaptureConnectHandler()
       const socket = fakeSocket()
 
-      await expect(connectHandler(socket as unknown as Socket)).resolves.not.toThrow()
+      await expect(connectHandler(socket)).resolves.not.toThrow()
 
       // the original connect-hook error was logged
       expect(logWithLevelSpy).toHaveBeenCalledWith('error', expect.any(String), originalError)
@@ -144,7 +144,7 @@ describe('cable ws:error hook — ws:connect phase', () => {
       const connectHandler = await startAndCaptureConnectHandler()
       const socket = fakeSocket()
 
-      await expect(connectHandler(socket as unknown as Socket)).resolves.not.toThrow()
+      await expect(connectHandler(socket)).resolves.not.toThrow()
 
       expect(firstObserver).toHaveBeenCalledTimes(1)
       expect(secondObserver).toHaveBeenCalledTimes(1)

@@ -11,7 +11,7 @@ import * as socketAuth from '../../../test-app/src/conf/websocketAuth/resolveRef
 import User from '../../../test-app/src/app/models/User.js'
 import { io as ioClient, Socket as ClientSocket } from 'socket.io-client'
 
-function socketFor(auth: Record<string, unknown>) {
+function socketFor(auth: Record<string, unknown>): Socket {
   const socket = {
     id: 'reference-socket',
     connected: true,
@@ -21,7 +21,7 @@ function socketFor(auth: Record<string, unknown>) {
       socket.connected = false
     }),
   }
-  return socket
+  return socket as unknown as Socket
 }
 
 describe('reference websocket authentication through ws:connect', () => {
@@ -63,7 +63,7 @@ describe('reference websocket authentication through ws:connect', () => {
       const register = vi.spyOn(Ws, 'register')
       const logger = vi.spyOn(PsychicAppWebsockets, 'logWithLevel')
       const socket = socketFor(auth)
-      await connect(socket as unknown as Socket)
+      await connect(socket)
       expect(socket.disconnect).toHaveBeenCalledWith(true)
       expect(register).not.toHaveBeenCalled()
       expect(PsychicAppWebsockets.getOrFail().adapter()).toHaveProperty('broadcasts', [])
@@ -78,7 +78,7 @@ describe('reference websocket authentication through ws:connect', () => {
     await user.destroy()
     const register = vi.spyOn(Ws, 'register')
     const socket = socketFor({ token })
-    await connect(socket as unknown as Socket)
+    await connect(socket)
     expect(socket.disconnect).toHaveBeenCalledWith(true)
     expect(register).not.toHaveBeenCalled()
     expect(observer).not.toHaveBeenCalled()
@@ -88,7 +88,7 @@ describe('reference websocket authentication through ws:connect', () => {
   it('registers a real current user and emits authenticated success', async () => {
     const user = await createUser()
     const socket = socketFor({ token: encrypt(user.id) })
-    await connect(socket as unknown as Socket)
+    await connect(socket)
     const adapter = PsychicAppWebsockets.getOrFail().adapter()
     expect(await adapter.socketIdsFor(`user:${user.id}`)).toEqual([socket.id])
     expect(adapter).toHaveProperty('broadcasts', [
@@ -108,7 +108,7 @@ describe('reference websocket authentication through ws:connect', () => {
     async identity => {
       const socket = socketFor({ token: encrypt(identity) })
       const register = vi.spyOn(Ws, 'register')
-      await connect(socket as unknown as Socket)
+      await connect(socket)
       expect(socket.disconnect).toHaveBeenCalledWith(true)
       expect(register).not.toHaveBeenCalled()
       expect(observer).not.toHaveBeenCalled()
@@ -120,7 +120,7 @@ describe('reference websocket authentication through ws:connect', () => {
     const register = vi.spyOn(Ws, 'register')
     const socket = socketFor({})
     socket.connected = false
-    await connect(socket as unknown as Socket)
+    await connect(socket)
     expect(lookup).not.toHaveBeenCalled()
     expect(register).not.toHaveBeenCalled()
     expect(observer).not.toHaveBeenCalled()
@@ -144,7 +144,7 @@ describe('reference websocket authentication through ws:connect', () => {
     const socket = socketFor({ token })
     const register = vi.spyOn(Ws, 'register')
     const logger = vi.spyOn(PsychicAppWebsockets, 'logWithLevel').mockReturnValue(undefined)
-    await connect(socket as unknown as Socket)
+    await connect(socket)
     expect(socket.disconnect).toHaveBeenCalledWith(true)
     expect(register).not.toHaveBeenCalled()
     expect(observer).toHaveBeenCalledExactlyOnceWith(expect.any(DecryptionParseError), {
@@ -163,7 +163,7 @@ describe('reference websocket authentication through ws:connect', () => {
     const lookup = vi.spyOn(socketAuth, 'default').mockReturnValue(pending)
     const register = vi.spyOn(Ws, 'register')
     const socket = socketFor({ token: encrypt(user.id) })
-    const connection = connect(socket as unknown as Socket)
+    const connection = connect(socket)
     expect(lookup).toHaveBeenCalledWith(socket)
     socket.disconnect(true)
     finishLookup(user)
@@ -181,7 +181,7 @@ describe('reference websocket authentication through ws:connect', () => {
       await originalRegister(userKey, registeringSocket)
       socket.disconnect(true)
     })
-    await connect(socket as unknown as Socket)
+    await connect(socket)
     expect(adapter).toHaveProperty('broadcasts', [])
     expect(observer).not.toHaveBeenCalled()
   })
@@ -207,7 +207,7 @@ describe('reference websocket authentication through ws:connect', () => {
       }
     }
     const logger = vi.spyOn(PsychicAppWebsockets, 'logWithLevel').mockReturnValue(undefined)
-    await expect(connect(socket as unknown as Socket)).resolves.toBeUndefined()
+    await expect(connect(socket)).resolves.toBeUndefined()
     expect(socket.disconnect).toHaveBeenCalledWith(true)
     expect(observer).toHaveBeenCalledExactlyOnceWith(error, { phase: 'ws:connect', socketId: socket.id })
     expect(logger).toHaveBeenCalledWith('error', expect.any(String), error)
@@ -221,7 +221,7 @@ describe('reference websocket authentication through ws:connect', () => {
     const logger = vi.spyOn(PsychicAppWebsockets, 'logWithLevel').mockReturnValue(undefined)
     const register = vi.spyOn(Ws, 'register')
     const socket = socketFor({ token })
-    await expect(connect(socket as unknown as Socket)).resolves.toBeUndefined()
+    await expect(connect(socket)).resolves.toBeUndefined()
     expect(socket.disconnect).toHaveBeenCalledWith(true)
     expect(register).not.toHaveBeenCalled()
     expect(observer).toHaveBeenCalledExactlyOnceWith(expect.any(Error), {

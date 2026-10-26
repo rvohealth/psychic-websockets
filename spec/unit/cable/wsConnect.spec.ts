@@ -3,8 +3,8 @@ import Cable from '../../../src/cable/index.js'
 import PsychicAppWebsockets from '../../../src/psychic-app-websockets/index.js'
 import isolateReferenceWebsocketHooks from './helpers/isolateReferenceWebsocketHooks.js'
 
-function fakeSocket() {
-  return { id: 'socket-abc', disconnect: vi.fn() }
+function fakeSocket(): Socket {
+  return { id: 'socket-abc', disconnect: vi.fn() } as unknown as Socket
 }
 
 describe('cable ws:connect hook handling', () => {
@@ -41,7 +41,7 @@ describe('cable ws:connect hook handling', () => {
     const connectHandler = await startAndCaptureConnectHandler()
     const socket = fakeSocket()
 
-    await connectHandler(socket as unknown as Socket)
+    await connectHandler(socket)
 
     expect(hookSpy).toHaveBeenCalledWith(socket)
   })
@@ -55,7 +55,7 @@ describe('cable ws:connect hook handling', () => {
     wsApp.on('ws:connect', later)
     const connectHandler = await startAndCaptureConnectHandler()
     const socket = fakeSocket()
-    await connectHandler(socket as unknown as Socket)
+    await connectHandler(socket)
     expect(socket.disconnect).toHaveBeenCalledWith(true)
     expect(later).toHaveBeenCalledExactlyOnceWith(socket)
   })
@@ -70,7 +70,7 @@ describe('cable ws:connect hook handling', () => {
       wsApp.on('ws:connect', later)
       vi.spyOn(PsychicAppWebsockets, 'logWithLevel').mockReturnValue(undefined)
       const connectHandler = await startAndCaptureConnectHandler()
-      await connectHandler(fakeSocket() as unknown as Socket)
+      await connectHandler(fakeSocket())
       expect(later).not.toHaveBeenCalled()
     })
 
@@ -86,7 +86,7 @@ describe('cable ws:connect hook handling', () => {
 
       // before containment, the async listener rejects (an unhandledRejection in
       // production, killing the ws process); it must resolve instead.
-      await expect(connectHandler(socket as unknown as Socket)).resolves.not.toThrow()
+      await expect(connectHandler(socket)).resolves.not.toThrow()
 
       expect(logWithLevelSpy).toHaveBeenCalledWith('error', expect.any(String), error)
       expect(socket.disconnect).toHaveBeenCalledWith(true)
@@ -98,7 +98,7 @@ describe('cable ws:connect hook handling', () => {
       const connectHandler = await startAndCaptureConnectHandler()
       const socket = fakeSocket()
 
-      await connectHandler(socket as unknown as Socket)
+      await connectHandler(socket)
 
       expect(socket.disconnect).not.toHaveBeenCalled()
     })
