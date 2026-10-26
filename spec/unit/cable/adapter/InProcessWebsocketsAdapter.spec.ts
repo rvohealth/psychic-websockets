@@ -1,20 +1,21 @@
+import type { Mock } from 'vitest'
 import { Server as SocketServer } from 'socket.io'
 import { io as ioClient, Socket as ClientSocket } from 'socket.io-client'
 import InProcessWebsocketsAdapter from '../../../../src/cable/adapter/InProcessWebsocketsAdapter.js'
 
-// a stand-in for a socket.io 4.8 socket that has finished connecting (or, with
-// `disconnected`, one that has since disconnected): socket.io only holds a socket
-// in its namespace's pre-connect map while io.use middleware runs
+// a stand-in for a socket.io 4.8 socket that has finished connecting: socket.io
+// only holds a socket in its namespace's pre-connect map while io.use middleware runs
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fakeSocket(id: string, on: (...args: any[]) => void = vi.fn(), disconnected = false): any {
-  return { id, on, disconnected, conn: { readyState: 'open' }, nsp: { _preConnectSockets: new Map() } }
+function fakeSocket(id: string, on: (...args: any[]) => void = vi.fn()): any {
+  return { id, on, disconnected: false, conn: { readyState: 'open' }, nsp: { _preConnectSockets: new Map() } }
 }
 
 // a stand-in for a socket.io 4.8 socket still running io.use middleware: not yet
 // connected, its transport open, and held in the namespace's pre-connect map
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function preConnectSocket(id: string, on: (...args: any[]) => void = vi.fn()): any {
-  const socket = fakeSocket(id, on, true)
+  const socket = fakeSocket(id, on)
+  socket.disconnected = true
   socket.nsp._preConnectSockets.set(id, socket)
   return socket
 }
@@ -66,10 +67,17 @@ describe('InProcessWebsocketsAdapter', () => {
     })
 
     context('when the socket is already disconnected', () => {
-      it('does not register it or bind a disconnect handler', async () => {
-        const on = vi.fn()
+      let on: Mock<(...args: unknown[]) => void>
+      let socket: ReturnType<typeof fakeSocket>
 
-        await adapter.register('user:123', fakeSocket('456', on, true))
+      beforeEach(() => {
+        on = vi.fn()
+        socket = fakeSocket('456', on)
+        socket.disconnected = true
+      })
+
+      it('does not register it or bind a disconnect handler', async () => {
+        await adapter.register('user:123', socket)
 
         expect(await adapter.socketIdsFor('user:123')).toEqual([])
         expect(on).not.toHaveBeenCalled()
@@ -77,21 +85,27 @@ describe('InProcessWebsocketsAdapter', () => {
     })
 
     context('when the socket has not finished connecting (io.use middleware)', () => {
-      it('registers it and binds a disconnect handler', async () => {
-        const on = vi.fn()
+      let on: Mock<(...args: unknown[]) => void>
+      let socket: ReturnType<typeof preConnectSocket>
 
-        await adapter.register('user:123', preConnectSocket('456', on))
+      beforeEach(() => {
+        on = vi.fn()
+        socket = preConnectSocket('456', on)
+      })
+
+      it('registers it and binds a disconnect handler', async () => {
+        await adapter.register('user:123', socket)
 
         expect(await adapter.socketIdsFor('user:123')).toEqual(['456'])
         expect(on).toHaveBeenCalledWith('disconnect', expect.any(Function))
       })
 
       context('when its transport has already closed', () => {
-        it('does not register it or bind a disconnect handler', async () => {
-          const on = vi.fn()
-          const socket = preConnectSocket('456', on)
+        beforeEach(() => {
           socket.conn.readyState = 'closed'
+        })
 
+        it('does not register it or bind a disconnect handler', async () => {
           await adapter.register('user:123', socket)
 
           expect(await adapter.socketIdsFor('user:123')).toEqual([])
@@ -100,11 +114,11 @@ describe('InProcessWebsocketsAdapter', () => {
       })
 
       context('on a socket.io release without a pre-connect map', () => {
-        it('registers it and binds a disconnect handler', async () => {
-          const on = vi.fn()
-          const socket = fakeSocket('456', on, true)
+        beforeEach(() => {
           socket.nsp = {}
+        })
 
+        it('registers it and binds a disconnect handler', async () => {
           await adapter.register('user:123', socket)
 
           expect(await adapter.socketIdsFor('user:123')).toEqual(['456'])
