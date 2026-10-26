@@ -86,9 +86,11 @@ describe('RedisWebsocketsAdapter', () => {
     })
 
     context('with a custom maxConnectionsPerUser', () => {
-      it('restricts to the configured cap, evicting the oldest', async () => {
+      beforeEach(() => {
         PsychicAppWebsockets.getOrFail().set('maxConnectionsPerUser', 2)
+      })
 
+      it('restricts to the configured cap, evicting the oldest', async () => {
         await adapter.register('user:123', fakeSocket('456'))
         await adapter.register('user:123', fakeSocket('789'))
         await adapter.register('user:123', fakeSocket('345'))
@@ -98,9 +100,11 @@ describe('RedisWebsocketsAdapter', () => {
     })
 
     context('with maxConnectionsPerUser set to 1', () => {
-      it('keeps only the most recently registered socket id', async () => {
+      beforeEach(() => {
         PsychicAppWebsockets.getOrFail().set('maxConnectionsPerUser', 1)
+      })
 
+      it('keeps only the most recently registered socket id', async () => {
         await adapter.register('user:123', fakeSocket('456'))
         await adapter.register('user:123', fakeSocket('789'))
 
@@ -365,20 +369,20 @@ describe('RedisWebsocketsAdapter', () => {
     })
 
     context('when disconnect cleanup fails', () => {
-      it('logs at warn instead of floating an unhandled rejection', async () => {
-        let disconnectHandler: (() => void) | undefined
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const socket = fakeSocket('456', (event: string, handler: () => void) => {
-          if (event === 'disconnect') disconnectHandler = handler
-        })
-        await adapter.register('user:123', socket)
+      // every graceful shutdown rejects cleanup this way ("Connection is closed.")
+      const error = new Error('Connection is closed.')
+      let registered: ReturnType<typeof disconnectableSocket>
 
-        // every graceful shutdown rejects cleanup this way ("Connection is closed.")
-        const error = new Error('Connection is closed.')
+      beforeEach(async () => {
+        registered = disconnectableSocket('456')
+        await adapter.register('user:123', registered.socket)
         vi.spyOn(PsychicAppWebsockets.getOrFail().connection, 'lrem').mockRejectedValue(error)
+      })
+
+      it('logs at warn instead of floating an unhandled rejection', async () => {
         const logWithLevelSpy = vi.spyOn(PsychicAppWebsockets, 'logWithLevel').mockReturnValue(undefined)
 
-        disconnectHandler!()
+        registered.disconnect()
         await new Promise(resolve => setImmediate(resolve))
 
         expect(logWithLevelSpy).toHaveBeenCalledWith('warn', expect.any(String), error)

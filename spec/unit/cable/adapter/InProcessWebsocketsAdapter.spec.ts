@@ -189,9 +189,14 @@ describe('InProcessWebsocketsAdapter', () => {
     })
 
     context('with an attached server', () => {
-      it('delivers in-process to each registered socket within the namespace', async () => {
-        const io = fakeSocketServer()
+      let io: ReturnType<typeof fakeSocketServer>
+
+      beforeEach(() => {
+        io = fakeSocketServer()
         adapter.attachServer(io.server)
+      })
+
+      it('delivers in-process to each registered socket within the namespace', async () => {
         await adapter.register('user:123', fakeSocket('456'))
 
         await adapter.emit('/', 'user:123', '/ops/howyadoin', { hello: 'world' })
