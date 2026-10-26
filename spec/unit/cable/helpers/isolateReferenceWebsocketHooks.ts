@@ -4,6 +4,6 @@ import PsychicAppWebsockets from '../../../../src/psychic-app-websockets/index.j
 // sockets. The real reference authentication policy has its own factory specs.
 export default function isolateReferenceWebsocketHooks() {
   const hooks = PsychicAppWebsockets.getOrFail().hooks
-  hooks.wsStart.length = 0
-  hooks.wsConnect.length = 0
+  hooks.wsStart = []
+  hooks.wsConnect = []
 }
