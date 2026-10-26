@@ -77,7 +77,7 @@ No build step is needed before running specs. They run the TypeScript sources th
 | `pnpm psy sync`                              | Regenerates the test-app's database types, app types and OpenAPI files      | Ensure no sync diffs (Node 26) |
 | `pnpm audit` and `(cd client && pnpm audit)` | Advisory check for each dependency graph                                    | none                           |
 
-`pnpm uspec` runs once and exits. Pass a path to run one file, e.g. `pnpm uspec spec/unit/cable/ws.spec.ts`. `pnpm fspec` starts the client dev server (`pnpm client:fspec`) and the websocket server (`pnpm ws:fspec`) itself and stops them afterwards. Use `pnpm fspec:hanging` to find a feature spec that keeps the process alive.
+`pnpm uspec` runs once and exits. Pass a path to run one file, e.g. `pnpm uspec spec/unit/cable/ws.spec.ts`. `pnpm fspec` starts the client dev server (`pnpm client:fspec`) itself and stops it afterwards. The Psychic HTTP server and the websocket server run inside each spec worker (`spec/features/setup/hooks.ts`), so they read the same per-worker test database as the spec. Use `pnpm fspec:hanging` to find a feature spec that keeps the process alive.
 
 The Check build job also loads the built package through its ESM and CJS exports on each Node version. The Ensure no sync diffs job fails if `pnpm psy sync` changes any tracked file, so commit what `sync` generates.
 

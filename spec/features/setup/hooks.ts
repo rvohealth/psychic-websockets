@@ -2,9 +2,9 @@ import { Dream, DreamApp } from '@rvoh/dream'
 import { provideDreamViteMatchers, truncate } from '@rvoh/dream-spec-helpers'
 import { PsychicServer } from '@rvoh/psychic'
 import { providePuppeteerViteMatchers } from '@rvoh/psychic-spec-helpers'
+import { Cable } from '../../../src/index.js'
 import initializePsychicApp from '../../../test-app/src/cli/helpers/initializePsychicApp.js'
 import getPage from '../helpers/getPage.js'
-import { PsychicDevtools } from '@rvoh/psychic/system'
 import AppEnv from '../../../test-app/src/conf/AppEnv.js'
 
 provideDreamViteMatchers(Dream)
@@ -26,6 +26,7 @@ providePuppeteerViteMatchers()
 ;(global as any).jest = vi
 
 let server: PsychicServer
+let cable: Cable
 
 beforeAll(async () => {
   try {
@@ -37,6 +38,13 @@ beforeAll(async () => {
 
   server = new PsychicServer()
   await server.start(parseInt(process.env.DEV_SERVER_PORT || '7778'))
+
+  // Dream gives each live vitest worker its own database from a pool, and a worker can
+  // overlap the previous file's still-exiting worker, so which database it claims varies.
+  // The websocket server must read the rows this worker creates, so it runs here, sharing
+  // this worker's claim, rather than as a separate process started by globalSetup.
+  cable = new Cable()
+  await cable.start(AppEnv.integer('WS_PORT', { optional: true }) || 8889)
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if (!(global as any).page) {
@@ -50,5 +58,6 @@ beforeEach(async () => {
 })
 
 afterAll(async () => {
+  await cable?.stop()
   await server.stop()
 })
