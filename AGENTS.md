@@ -61,6 +61,16 @@ Confirm `pnpm why @rvoh/psychic` shows the version you intend to support. A gree
 
 Record consumer-facing compatibility limits and intentionally held-back published dependencies in the numbered release entry in `CHANGELOG.md` (and TSDoc where relevant). Record internal development dependency constraints in the PR description, never in the changelog.
 
+## CI Tooling: Industry Standards Only
+
+Use the standard, documented mechanism a tool already provides, such as pnpm's
+`minimumReleaseAge` for dependency cooldowns. Never hand-write CI scripts,
+guards, or harnesses that re-verify a tool's own configuration. If a protection
+needs enforcing against edits to its configuration, use code review, CODEOWNERS,
+or branch protection on the configuration files, not a custom check. An agent
+that believes a custom CI check is needed must stop and ask the owner, naming
+the standard mechanism it could not find.
+
 ## Local request notes
 
 Root-level `FEATURE_REQUEST_*.md` scratch notes stay untracked and visible: never commit them, never add them to `.gitignore` or `.git/info/exclude`. Archive them to `~/Documents/psychic-history/psychic-websockets/` only after the work is verified against current source.

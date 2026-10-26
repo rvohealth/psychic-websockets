@@ -81,14 +81,14 @@ No build step is needed before running specs. They run the TypeScript sources th
 
 The Check build job also loads the built package through its ESM and CJS exports on each Node version. The Ensure no sync diffs job fails if `pnpm psy sync` changes any tracked file, so commit what `sync` generates.
 
-The Cooldown exclude allowlist job checks the supply-chain settings described in the next section.
+pnpm enforces the release-age cooldown described in the next section on every install, including CI's `--frozen-lockfile` installs.
 
 ## Dependency updates and supply-chain policy
 
 Follow the dependency-update procedure in [AGENTS.md](AGENTS.md#dependency-updates). It covers both dependency graphs (root and `client/`), updating parent packages before transitive ones, keeping the Dream, Psychic, Socket.IO, Redis, Koa and TypeScript set compatible, the Node 24 and Node 26 support policy, and the commands to run before you claim an update works. [SECURITY.md](SECURITY.md#supply-chain-hardening) explains why these defenses exist.
 
-- **Release-age cooldown.** `pnpm-workspace.yaml` sets `minimumReleaseAge: 4320` (3 days), so pnpm will not install a version published more recently. `minimumReleaseAgeExclude` exempts only `@rvoh/*`, our own packages. `client/pnpm-workspace.yaml` repeats the cooldown, because `client/` does not inherit the root file. The `check-cooldown-excludes` CI job fails if either file drops a positive `minimumReleaseAge` or adds a non-`@rvoh/*` exclude. If a release you need is too new, wait or ask a maintainer. Do not add an exclude.
-- **`.npmrc` is registry-only.** pnpm 11+ reads only registry and auth settings from it and ignores install policy there. CI rejects release-age settings in `.npmrc`.
+- **Release-age cooldown.** `pnpm-workspace.yaml` sets `minimumReleaseAge: 4320` (3 days), so pnpm will not install a version published more recently. `minimumReleaseAgeExclude` exempts only `@rvoh/*`, our own packages. `client/pnpm-workspace.yaml` repeats the cooldown, because `client/` does not inherit the root file. pnpm enforces this on every install, CI's `--frozen-lockfile` install included; the `@rvoh/*` exclusion is the only bypass. Changes to `pnpm-workspace.yaml`, `.npmrc`, any pnpmfile, or the workflow files are reviewed like any other code change. If a release you need is too new, wait or ask a maintainer. Do not add an exclude.
+- **`.npmrc` is registry-only.** pnpm 11+ reads only registry and auth settings from it and ignores install policy there; release-age settings belong in `pnpm-workspace.yaml`.
 - **Build scripts.** `allowBuilds` in `pnpm-workspace.yaml` is a supply-chain allowlist. Keep it minimal.
 - **No overrides or resolutions** without a maintainer's approval, and only after updating parent packages and refreshing the lockfile have failed.
 - **Toolchain.** Keep the pinned `packageManager` version and its integrity hash. Treat a pnpm bump as a separate, deliberate change.
