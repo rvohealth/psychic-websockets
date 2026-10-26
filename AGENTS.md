@@ -38,7 +38,7 @@ When a transitive package is stale or vulnerable:
 
 Constraints:
 
-- Respect `.npmrc` (`minimumReleaseAge`, registry policy). A release-age obstacle is handled only as an explicit, exact-version, user-approved exception, never as an override.
+- Respect the release-age cooldown (`minimumReleaseAge` and the `@rvoh/*`-only `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`, repeated in `client/pnpm-workspace.yaml`; pnpm 11+ ignores both in `.npmrc`) and the `.npmrc` registry policy. A release-age obstacle is handled only as an explicit, exact-version, user-approved exception, never as an override.
 - Keep the pinned root `packageManager` version and integrity hash reproducible. Evaluate a pnpm/toolchain bump deliberately, especially across majors, rather than using one to mask a dependency or local-store problem.
 - Keep `pnpm-workspace.yaml` `allowBuilds` minimal; it is a supply-chain allowlist.
 - Align `@rvoh/dream`, `@rvoh/psychic`, the spec helpers, Socket.IO, Redis, Koa, TypeScript and their peers as one compatible set (check `npm view @rvoh/dream peerDependencies`; e.g. Dream pins the `kysely` and `commander` majors). Do not blindly take an incompatible major.

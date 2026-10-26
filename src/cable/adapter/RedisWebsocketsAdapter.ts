@@ -4,6 +4,7 @@ import { Emitter } from '@socket.io/redis-emitter'
 import { Redis } from 'ioredis'
 import { Server as SocketServer, Socket } from 'socket.io'
 import MissingWsRedisConnection from '../../error/ws/MissingWsRedisConnection.js'
+import socketHasClosed from '../../helpers/socketHasClosed.js'
 import PsychicAppWebsockets, { RedisOrRedisClusterConnection } from '../../psychic-app-websockets/index.js'
 import { PsychicWebsocketsAdapter } from './PsychicWebsocketsAdapter.js'
 
@@ -19,6 +20,12 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
   private _emitterConnection: RedisOrRedisClusterConnection | undefined
 
   public async register(userKey: string, socket: Socket): Promise<void> {
+    // socket.io emits 'disconnect' once and does not replay it to listeners added
+    // later, so a socket that has already closed would leave its id behind until
+    // the key's TTL (and, at the cap, evict a live socket's id first). A socket
+    // still in io.use middleware is registered: it emits 'disconnect' once connected.
+    if (socketHasClosed(socket)) return
+
     const connection = this.connection
     const redisKey = this.redisKey(userKey)
 
@@ -26,31 +33,30 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
     const maxConnections = wsApp.maxConnectionsPerUser
     const ttlSeconds = wsApp.maxConnectionTtlSeconds
 
-    // keep the most recent (maxConnections - 1) socket ids, then append the new one,
-    // so the user never exceeds the cap and the oldest connection is evicted first.
-    // When the cap is 1 we keep none (a negative-start lrange would otherwise return
-    // every id).
-    const socketIdsToKeep =
-      maxConnections > 1 ? await connection.lrange(redisKey, -(maxConnections - 1), -1) : []
-
+    // one transaction with no prior read, so concurrent registers (and disconnect
+    // cleanups) for the same user apply one after another instead of overwriting
+    // each other: drop any earlier copy of this id, append it, then trim to the most
+    // recent maxConnections ids so the oldest connection is evicted first. A single
+    // key keeps this valid on redis cluster, and the key stays a list so processes
+    // running the previous release can share it during a rolling deploy.
     await connection
       .multi()
-      .del(redisKey)
-      .rpush(redisKey, ...socketIdsToKeep, socket.id)
+      .lrem(redisKey, 0, socket.id)
+      .rpush(redisKey, socket.id)
+      .ltrim(redisKey, -maxConnections, -1)
       .expire(redisKey, ttlSeconds)
       .exec()
 
+    // check and bind in the same tick as the write resolving, so a socket that
+    // closed while the write was in flight is cleaned up here and any later
+    // disconnect reaches the listener.
+    if (socketHasClosed(socket)) {
+      this.deregister(connection, redisKey, socket.id)
+      return
+    }
+
     socket.on('disconnect', () => {
-      // best-effort cleanup: the registry key's TTL is the backstop for entries this
-      // misses. Uncaught, this rejection floats on every graceful shutdown
-      // ("Connection is closed.") and becomes an unhandledRejection.
-      connection.lrem(redisKey, 1, socket.id).catch((error: unknown) => {
-        PsychicAppWebsockets.logWithLevel(
-          'warn',
-          'failed to deregister socket id on disconnect (the registry key TTL will clean it up)',
-          error,
-        )
-      })
+      this.deregister(connection, redisKey, socket.id)
     })
   }
 
@@ -134,6 +140,24 @@ export default class RedisWebsocketsAdapter implements PsychicWebsocketsAdapter 
       this._emitterConnection = connection
     }
     return this._emitter
+  }
+
+  /**
+   * @internal
+   *
+   * removes a socket id from the user's registry. Best-effort: the registry key's
+   * TTL is the backstop for entries this misses. Uncaught, this rejection floats on
+   * every graceful shutdown ("Connection is closed.") and becomes an
+   * unhandledRejection, so it is logged at warn instead.
+   */
+  private deregister(connection: RedisOrRedisClusterConnection, redisKey: string, socketId: string): void {
+    connection.lrem(redisKey, 0, socketId).catch((error: unknown) => {
+      PsychicAppWebsockets.logWithLevel(
+        'warn',
+        'failed to deregister socket id on disconnect (the registry key TTL will clean it up)',
+        error,
+      )
+    })
   }
 
   /**

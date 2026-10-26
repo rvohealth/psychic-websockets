@@ -1,5 +1,6 @@
 import { Server as SocketServer, Socket } from 'socket.io'
 import { PsychicWebsocketsAdapter } from './PsychicWebsocketsAdapter.js'
+import socketHasClosed from '../../helpers/socketHasClosed.js'
 
 /**
  * A single recorded broadcast, captured by {@link InProcessWebsocketsAdapter} every
@@ -25,7 +26,7 @@ export interface RecordedBroadcast {
  *     sockets registered on that server — real delivery with no external redis.
  *
  * Delivery is single-process: a broadcast reaches a socket only when the emit and the
- * socket are in the same process (e.g. a `ws:start` connection handler emitting on the
+ * socket are in the same process (e.g. a `ws:connect` hook emitting on the
  * websocket server). It does NOT bridge processes — an emit from a separate web/worker
  * process won't reach a socket held by the websocket server. That cross-process fan-out
  * is what the redis adapter provides in production.
@@ -41,6 +42,12 @@ export default class InProcessWebsocketsAdapter implements PsychicWebsocketsAdap
   private io: SocketServer | undefined
 
   public register(userKey: string, socket: Socket): Promise<void> {
+    // socket.io emits 'disconnect' once and does not replay it to listeners added
+    // later, so registering a socket that has already closed would leave its id
+    // behind until shutdown. A socket still in io.use middleware is registered: it
+    // emits 'disconnect' once connected.
+    if (socketHasClosed(socket)) return Promise.resolve()
+
     let socketIds = this.registry.get(userKey)
     if (!socketIds) {
       socketIds = new Set<string>()

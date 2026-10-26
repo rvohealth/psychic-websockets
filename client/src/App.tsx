@@ -38,7 +38,7 @@ function HomePage() {
 }
 
 function SocketTestPage() {
-  const [websocketMessage, setWebsocketMessage] = useState('')
+  const [websocketMessage, setWebsocketMessage] = useState('websockets connecting')
   const params = useParams()
   const authToken = params.token as string
 
@@ -54,7 +54,20 @@ function SocketTestPage() {
     socket.on('/ops/connection-success', () => {
       setWebsocketMessage('websockets connected')
     })
-  }, [])
+    socket.on('disconnect', reason => {
+      setWebsocketMessage(
+        reason === 'io server disconnect' ? 'websockets rejected' : 'websockets disconnected',
+      )
+    })
+    socket.on('connect_error', () => {
+      setWebsocketMessage('websockets failed')
+    })
+
+    return () => {
+      socket.removeAllListeners()
+      socket.disconnect()
+    }
+  }, [authToken])
 
   return (
     <div>
