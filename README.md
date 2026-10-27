@@ -74,8 +74,10 @@ that has already disconnected and removes one that disconnects while it register
 A socket that is still in `io.use` middleware is registered normally.
 
 Framework containment applies to `ws:connect` callbacks. A raw
-`server.on('connection', async socket => ...)` listener installed by `ws:start` is
-outside that containment and `ws:error` observation. The library supplies hooks;
+`server.on('connection', async socket => ...)` listener or `server.use(...)`
+middleware installed by `ws:start` is outside that containment and `ws:error`
+observation. A middleware should pass a failure to `next(err)`, which refuses only
+that client's connection. The library supplies hooks;
 each application chooses its authentication policy.
 
 ## Error observability

@@ -153,8 +153,10 @@ export default class PsychicAppWebsockets {
    * stops subsequent connect callbacks and notifies `ws:error`. An expected auth
    * rejection may instead disconnect and return quietly; later callbacks still
    * run, so guard dependent work and check connection state after awaits. Raw
-   * connection listeners installed by `ws:start` are outside this containment
-   * and error observation. Startup failures propagate to the caller of start.
+   * connection listeners and `io.use` middleware installed by `ws:start` are
+   * outside this containment and error observation. A middleware should pass a
+   * failure to `next(err)`, which refuses only that client's connection.
+   * Startup failures propagate to the caller of start.
    */
   public on<T extends PsychicWebsocketsHookEventType>(
     hookEventType: T,

@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@rvoh/psychic-websockets",
   "description": "Websocket system for Psychic applications",
-  "version": "3.5.3",
+  "version": "3.5.4",
   "author": "RVO Health",
   "publishConfig": {
     "access": "public"
@@ -45,7 +45,6 @@
     "lint": "pnpm eslint --no-warn-ignored \"src/**/*.ts\" && pnpm prettier . --check",
     "dev": "NODE_ENV=development tsx ./test-app/main.ts",
     "ws": "NODE_ENV=development tsx ./test-app/ws.ts",
-    "ws:fspec": "NODE_ENV=test tsx ./test-app/ws.ts",
     "prepack": "pnpm build"
   },
   "peerDependencies": {
