@@ -157,24 +157,39 @@ type ShutdownReason = 'uncaughtException' | 'unhandledRejection' | 'SIGINT' | 'S
 void startWs()
 ```
 
-3. Update your fspec hooks to add the following, so that your websocket service will start when you run specs, and then terminate when you stop them:
+3. Update `spec/features/setup/hooks.ts` to start the websocket server in the spec worker, after initializing the app and starting the API server. Remove any websocket `PsychicDevtools.launchDevServer` / `stopDevServer` calls from your feature-spec setup:
 
 ```ts
+import { Cable } from '@rvoh/psychic-websockets'
+// Keep your existing AppEnv import.
+
+let cable: Cable
+
 beforeAll(async () => {
-  ...
-  await PsychicDevtools.launchDevServer('ws', {
-    cmd: 'pnpm ws:fspec',
-    port: AppEnv.integer('WS_PORT', { optional: true }) || 8888,
-  })
+  // ...existing app initialization and API server startup...
+
+  // Start here, in the spec worker, for two reasons:
+  // - Dream gives each spec worker its own test database, so a separate
+  //   process can read a different one and miss the rows a spec creates.
+  // - In test, websockets default to the in-process adapter (since 3.2.0),
+  //   so a separate process never receives a Ws.emit made in the spec worker.
+  cable = new Cable()
+  await cable.start(AppEnv.integer('WS_PORT', { optional: true }) || 8889)
+
+  // ...existing browser startup...
 })
 
 afterAll(async () => {
-  ...
-  PsychicDevtools.stopDevServer('ws')
+  // Stop websockets first, and always free the API server's port too.
+  try {
+    await cable?.stop()
+  } finally {
+    await server.stop()
+  }
 })
 ```
 
-4. Update any clients connecting to websockets to use the new url. In this case, it will just be localhost:8888, but you can use whatever ports you want, as long as you also make sure to use that port for the `WS_PORT` env var.
+4. Update any clients connecting to websockets to use the new URL: `localhost:8888` in development and `localhost:8889` in feature specs by default. If you set `WS_PORT`, configure the client to use the same port. A development websocket server using that same port must be stopped before feature specs start their `Cable`.
 
 5. Add the following to `src/conf/initializers/websockets.ts`, so that there is a guard to prevent needlessly configuring when you are not running websockets:
 
@@ -184,13 +199,14 @@ export default (wsApp: PsychicAppWebsockets) => {
   ...
 ```
 
-6. Add the following package.json scripts:
+6. Add the development websocket script to `package.json`. Feature specs start `Cable` in their hooks, so remove any `ws:fspec` script:
 
 ```json
-  "scripts":
-    ...
-    "ws": "NODE_ENV=development tsx ./test-app/ws.ts",
-    "ws:fspec": "NODE_ENV=test tsx ./test-app/ws.ts",
+{
+  "scripts": {
+    "ws": "NODE_ENV=development tsx ./test-app/ws.ts"
+  }
+}
 ```
 
 7. `conf/websockets.ts` has simplified the api to set the redis connection, and also now provides the ability to directly pass low-level socket.io server options, which will be fed into the socket.io server as it is provisioned:
